@@ -7,7 +7,7 @@ from langchain_core.vectorstores import InMemoryVectorStore
 
 """
 #to run locally 
-podman pull ollama:latest (can skip this step on the amdbox, it's already pulled?)
+podman pull ollama:rocm (can skip this step on the amdbox, it's already pulled?)
 ./ollama-run
 ./ollama pull llama3.2:latest
 
