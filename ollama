@@ -1,0 +1,5 @@
+#!/bin/bash
+
+podman exec -it ollama-rocm ollama $@
+
+

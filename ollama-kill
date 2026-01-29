@@ -1,0 +1,7 @@
+#!/bin/bash
+
+podman kill ollama-rocm
+podman rm -f $(podman ps -a -f "status=exited" -q)
+
+
+
