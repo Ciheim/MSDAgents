@@ -11,4 +11,5 @@ dependencies = [
    "langchain-core",
    "langchain-ollama",
    "langchain-chroma",
+   "langchain-community"
 ]
