@@ -17,7 +17,7 @@ collection_vectorstore = Chroma(
 
 
 retriever = collection_vectorstore.as_retriever()
-print(retriever.invoke("What is a dog?"))
+print(retriever.invoke("Are dogs better than cats?"))
 
 SystemMessage("Be cheerful!"),
 human_message = HumanMessagePromptTemplate.from_template("{query}, use only {content} to answer question.")
