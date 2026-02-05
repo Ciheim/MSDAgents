@@ -21,12 +21,15 @@ def create_database():
     collection = client.create_collection(
       name="animals",
       embedding_function=LlamaEmbeddingFunction(llama_embedding),
-      metadata={"subroutine": "animals"}
+      metadata={"type": "animals"}
     )
     collection.add(
-      documents=["Cats are okay", "Dogs are awesome"],
-      ids=["cats", "dogs"],
-      metadatas=[{"type": "cat"}, {"type": "dog"}]
+      documents=[
+          "Cats are okay", "Cats have sharp nails.", "Cats are scary", 
+          "Dogs are awesome", "Dogs are friendly", "Dogs are cute"
+      ],
+      ids=["cats", "cats2", "cats3", "dogs", "dogs2", "dogs3"],
+      metadatas=[{"type": "cat"}, {"type": "cat"}, {"type": "cat"}, {"type": "dog"}, {"type": "dog"}, {"type": "dog"}]
     )
 
 def update_database():
