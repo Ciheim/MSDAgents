@@ -43,7 +43,7 @@ print("added variables to collection")
 for subroutine in subroutines:
   name = subroutine.find("name").get_text(strip=True)
   response = chatbot.invoke(f"""
-  Describe the subroutine from this xml information:{subroutines[0]}.  Do not use
+  Describe the subroutine from this xml information:{subroutine}.  Do not use
   any special characters or a newline character.
   """                            
   )  
