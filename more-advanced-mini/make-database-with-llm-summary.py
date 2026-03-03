@@ -16,8 +16,8 @@ llm = "qwen2.5"
 chatbot = OllamaLLM(model=llm, temperature=0)  
 
 # initialize database, use default embedding function
-db_path = "./atm-land-ice-flux-exchange"
-collection_name = "atm-land-ice-flux-exchange"
+db_path = "./atm-land-ice-flux-exchange-llm"
+collection_name = "atm-land-ice-flux-exchange-llm"
 collection = chromadb.PersistentClient(path=db_path).get_or_create_collection(
   name=collection_name,
   metadata = {
