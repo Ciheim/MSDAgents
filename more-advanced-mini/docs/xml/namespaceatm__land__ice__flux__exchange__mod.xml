@@ -3047,10 +3047,7 @@
         <briefdescription>
 <para>Corrects the fluxes for consistency with the new surface temperatures in land and ice models. </para>        </briefdescription>
         <detaileddescription>
-<para>Final increments for temperature and specific humidity in the lowest atmospheric layer are computed and returned to the atmospheric model so that it can finalize the increments in the rest of the atmosphere.</para><para>The following elements of the land_ice_atmos_boundary_type are computed: <preformatted>
-        dt_t  = temperature change at the lowest atmospheric level (deg k)
-        dt_q  = specific humidity change at the lowest atmospheric level (kg/kg)
- </preformatted></para><para><parameterlist kind="param"><parameteritem>
+<para>Final increments for temperature and specific humidity in the lowest atmospheric layer are computed and returned to the atmospheric model so that it can finalize the increments in the rest of the atmosphere.</para><para>The following elements of the land_ice_atmos_boundary_type are computed: dt_t = temperature change at the lowest atmospheric level (deg k) dt_q = specific humidity change at the lowest atmospheric level (kg/kg)</para><para><parameterlist kind="param"><parameteritem>
 <parameternamelist>
 <parametername direction="in">time</parametername>
 </parameternamelist>
@@ -3096,7 +3093,7 @@
 </para>        </detaileddescription>
         <inbodydescription>
 <para>START CLOCKS FOR PROFILING</para><para>OVERRIDE ICE AND LAND TEMPERATURE FIELDS ONLY IF THE FIELD IS SPECIFIED IN THE DATA_TABLE</para><para>COMPUTE CHANGE IN SURFACE TEMPERATURE</para><para>UPDATE FLUXES AND ATMOSPHERIC INCREMENTS FOR IMPLICIT DEPENDENCE ON SURFACE TEMPERATURE</para><para>UPDATE TRACER TENDENCIES IN THE ATMOSPHERE</para><para>MAP MEAN QUANTITIES FROM THE EXCHANGE GRID TO THE ATMOSPERE GRID</para><para>MAP DATA FROM THE EXCHANGE GRID TO THE COMPONENT GRID AND SEND DATA TO DIAG_MANAGER BUFFER WHERE IF THE FIELD IS SPECIFIED IN THE DIAG_TABLE, DATA WILL BE OUTPUTTED AT THE END OF THE MODEL RUN</para><para>COMPUTE STOCK EXCHANGE BETWEEN COMPONENTS</para><para>END CLOCK FOR PROFILING </para>        </inbodydescription>
-        <location file="full/atm_land_ice_flux_exchange.F90" line="2916" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="2917" bodyend="3394"/>
+        <location file="full/atm_land_ice_flux_exchange.F90" line="2914" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="2915" bodyend="3392"/>
       </memberdef>
       <memberdef kind="function" id="namespaceatm__land__ice__flux__exchange__mod_1ac8716ce7e07543b081c151bd0b24d7d1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>subroutine, public</type>
@@ -3109,7 +3106,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="full/atm_land_ice_flux_exchange.F90" line="3398" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="3399" bodyend="3469"/>
+        <location file="full/atm_land_ice_flux_exchange.F90" line="3396" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="3397" bodyend="3467"/>
       </memberdef>
       <memberdef kind="function" id="namespaceatm__land__ice__flux__exchange__mod_1a6b47968fcb9188a68db2b7b8e1ea7a0f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>subroutine, public</type>
@@ -3160,7 +3157,7 @@
 </para>        </detaileddescription>
         <inbodydescription>
 <para>MAP ATMOSPHERE FIELDS TO THE EXCHANGE MAP FOR FLUX EXCHANGE WITH OCEAN</para><para>CALCULATE OCEAN EXPLICIT FLUX ON THE EXCHANGE GRID</para><para>MAP COMPUTED FLUX FROM THE EXCHANGE GRID TO THE ICE GRID</para><para>UPDATE AIR_SEA_DEPOSITION FLUXES </para>        </inbodydescription>
-        <location file="full/atm_land_ice_flux_exchange.F90" line="3473" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="3474" bodyend="3535"/>
+        <location file="full/atm_land_ice_flux_exchange.F90" line="3471" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="3472" bodyend="3533"/>
       </memberdef>
       <memberdef kind="function" id="namespaceatm__land__ice__flux__exchange__mod_1a50837c09366fc3aee78c7d5909783559" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>subroutine</type>
@@ -3204,7 +3201,7 @@
 </para>        </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="full/atm_land_ice_flux_exchange.F90" line="3541" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="3542" bodyend="3558"/>
+        <location file="full/atm_land_ice_flux_exchange.F90" line="3539" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="3540" bodyend="3556"/>
       </memberdef>
       <memberdef kind="function" id="namespaceatm__land__ice__flux__exchange__mod_1a996a4e123202df434c2b7a3e370dd854" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>subroutine</type>
@@ -3248,7 +3245,7 @@
 </para>        </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="full/atm_land_ice_flux_exchange.F90" line="3565" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="3566" bodyend="3583"/>
+        <location file="full/atm_land_ice_flux_exchange.F90" line="3563" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="3564" bodyend="3581"/>
       </memberdef>
       <memberdef kind="function" id="namespaceatm__land__ice__flux__exchange__mod_1ac8a26116481dffeb2f5f2ac6444c64f5" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>subroutine</type>
@@ -3277,7 +3274,7 @@
         </detaileddescription>
         <inbodydescription>
 <para>Convert diagnostic labels from integers to strings </para>        </inbodydescription>
-        <location file="full/atm_land_ice_flux_exchange.F90" line="3591" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="3592" bodyend="4147"/>
+        <location file="full/atm_land_ice_flux_exchange.F90" line="3589" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="3590" bodyend="4145"/>
       </memberdef>
       <memberdef kind="function" id="namespaceatm__land__ice__flux__exchange__mod_1a6dbcba7c48b5f085de6b33e9f05d6868" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>subroutine</type>
@@ -3299,7 +3296,7 @@
         <inbodydescription>
 <para>CHECK THE SHAPE OF THE DATA AND AREA ARE THE SAME <linebreak/>
  DIVIDE DATA IN EACH GRID CELL BY THE GRID CELL AREA </para>        </inbodydescription>
-        <location file="full/atm_land_ice_flux_exchange.F90" line="4152" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="4153" bodyend="4165"/>
+        <location file="full/atm_land_ice_flux_exchange.F90" line="4150" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="4151" bodyend="4163"/>
       </memberdef>
       <memberdef kind="function" id="namespaceatm__land__ice__flux__exchange__mod_1af00a10abb94ffaa2f305e00de92362bc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>subroutine, public</type>
@@ -3324,7 +3321,7 @@
 </para>        </detaileddescription>
         <inbodydescription>
 <para>INITIALIZE ICE_FRAC</para><para>REMAP ICE_MASK (FRACTIONAL AMOUNT OF SEA ICE) TO THE ATM GRID</para><para>SEND ICE_MASK TO THE DIAG_MANAGER BUFFER</para><para>COMPUTE SEA ICE AREA FRACTION FOR CELLS ON ATM GRID THAT ARE OVER OCEAN NORMALIZE SEA ICE FRACTION OVER ENTIRE ATMOS GRID BOX BY THE FRACTION OF ATMOS GRID BOX THAT IS OCEAN </para>        </inbodydescription>
-        <location file="full/atm_land_ice_flux_exchange.F90" line="4170" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="4171" bodyend="4211"/>
+        <location file="full/atm_land_ice_flux_exchange.F90" line="4168" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="4169" bodyend="4209"/>
       </memberdef>
       <memberdef kind="function" id="namespaceatm__land__ice__flux__exchange__mod_1ad11a70fa9758ae36a312504e589b3c1a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>subroutine, public</type>
@@ -3360,7 +3357,7 @@
 </para>        </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="full/atm_land_ice_flux_exchange.F90" line="4217" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="4218" bodyend="4227"/>
+        <location file="full/atm_land_ice_flux_exchange.F90" line="4215" column="1" bodyfile="full/atm_land_ice_flux_exchange.F90" bodystart="4216" bodyend="4225"/>
       </memberdef>
       </sectiondef>
     <briefdescription>

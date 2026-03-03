@@ -4,14 +4,14 @@
     <compoundname>full_coupler_mod.F90</compoundname>
     <includes local="no">file_version.fh</includes>
     <incdepgraph>
-      <node id="17">
-        <label>file_version.fh</label>
-      </node>
       <node id="16">
         <label>full/full_coupler_mod.F90</label>
         <link refid="full__coupler__mod_8_f90"/>
         <childnode refid="17" relation="include">
         </childnode>
+      </node>
+      <node id="17">
+        <label>file_version.fh</label>
       </node>
     </incdepgraph>
     <innerclass refid="structfull__coupler__mod_1_1coupler__clock__type" prot="private">full_coupler_mod::coupler_clock_type</innerclass>
