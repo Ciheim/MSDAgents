@@ -5,8 +5,11 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 import chromadb
 
-import fre
-import fre.make
+import click
+from click.testing import CliRunner
+
+from fre import fre
+#import fre.make
 
 #create database collection
 db_path = "./fremake_database"
@@ -25,8 +28,7 @@ modules =  [
     "fre.make.create_makefile_script",
     "fre.make.make_helpers",
     "fre.make.run_fremake_script"
-    #fre.make.fremake needs special treatment!
-    #"fre.make.fremake",
+    #"fre.make.fremake", needs special treatment
 ]
 
 
@@ -47,8 +49,20 @@ for mod in modules:
             ids.append(functionname)
             documents.append(moddoc + function_obj.__doc__)
             metadatas.append({"mod": mod, "function": functionname, "source":  modfile})
-    collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
-            
+
+#fremake
+runner = CliRunner()
+importedmod = importlib.import_module("fre.make.fremake")
+moddoc = importedmod.__doc__
+functions = ["all", "checkout-script", "makefile", "compile-script", "dockerfile"]
+for functionname in functions:
+    print(functionname)
+    ids.append(functionname)
+    documents.append(runner.invoke(fre.fre, args=["make", functionname, "--help"]).output)
+    metadatas.append({"mod": mod, "function": functionname, "source":  modfile})
+    
+collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
+    
 
 ## testing
 testme = False
@@ -61,8 +75,9 @@ if testme:
     ids, documents, metadatas = getresults["ids"], getresults["documents"], getresults["metadatas"]
 
     for document in documents: print(document)
-#    for i_id in ids: print(i_id)
-#    for metadata in metadatas: print(metadata)
+    for metadata in metadatas: print(metadata)
+    for i_id in ids: print(i_id)
+
     
     
     
