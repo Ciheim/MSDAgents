@@ -59,11 +59,16 @@ query = "Say hello"
 print(f"{chatbot.invoke(query).content}\n>", end=" ")
 # agent.invoke({"messages":[human_message.format(query="Introduce yourself", content="")]})
 
+messages = [system_message.format()]
+
 while True:
     query = input()
     if "goodbye" in query.lower(): exit        
+
     content = collections[0].query(query_texts=[query])["documents"]
-    answer = chatbot.invoke([system_message.format(), human_message.format(query=query, content=content)])
+    messages.append(human_message.format(query=query, content=content))
+    answer = chatbot.invoke(messages)
+    messages.append(answer)
     #agent.invoke({"messages":[human_message.format(query=query, content=content)]})
     print(answer.content + "\n >", end=" ")
 
