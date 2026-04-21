@@ -2,14 +2,11 @@ import importlib
 import inspect
 from pathlib import Path
 
-from bs4 import BeautifulSoup
 import chromadb
 
 import click
-from click.testing import CliRunner
 
 from fre import fre
-#import fre.make
 
 #create database collection
 db_path = "./fremake_database"
@@ -28,7 +25,6 @@ modules =  [
     "fre.make.create_makefile_script",
     "fre.make.make_helpers",
     "fre.make.run_fremake_script"
-    #"fre.make.fremake", needs special treatment
 ]
 
 
@@ -40,30 +36,50 @@ for mod in modules:
     modfile = Path(inspect.getfile(importedmod)).name
     
     # module docstring
-    moddoc = importedmod.__doc__ 
+    
+    mod_docstring = inspect.getdoc(importedmod)
     
     # each function is a document
     for functionname, function_obj in inspect.getmembers(importedmod):
         if inspect.isfunction(function_obj) and function_obj.__module__ == mod:
-            print(function_obj.__module__, functionname)
-            ids.append(functionname)
-            documents.append(moddoc + function_obj.__doc__)
-            metadatas.append({"mod": mod, "function": functionname, "source":  modfile})
 
-#fremake
-runner = CliRunner()
-importedmod = importlib.import_module("fre.make.fremake")
-moddoc = importedmod.__doc__
-functions = ["all", "checkout-script", "makefile", "compile-script", "dockerfile"]
-for functionname in functions:
-    print(functionname)
-    ids.append(functionname)
-    documents.append(runner.invoke(fre.fre, args=["make", functionname, "--help"]).output)
-    metadatas.append({"mod": mod, "function": functionname, "source":  modfile})
+            print(mod, functionname)
+
+            function_docstrings = function_obj.__doc__.split("\n")
+            function_description = ""
+
+            for iline in function_docstrings:
+                iline_stripped = iline.strip()
+                if iline_stripped:
+                    if iline_stripped[0] == ":":
+                        if ":param" in iline:
+                            function_description += iline.replace(":", "")
+                        elif "note::" in iline:
+                            function_description += iline.replace("..", "").replace("::", ",")
+                    else:
+                        function_description += iline_stripped
+
+            ids.append(functionname)
+            documents.append(mod_docstring + function_description)
+            metadatas.append({"mod": mod, "function": functionname, "source":  modfile})
+            
+mod = "fre.make.fremake"
+functions = ["all", "checkout_script", "makefile", "compile_script", "dockerfile"]
+
+importedmod = importlib.import_module(mod)
+mod_docstring = importedmod.__doc__
+
+for functionname, function_obj in inspect.getmembers(importedmod):
+    if functionname in functions:
+        description = f"Here is the information for fre make subcommand {functionname}:\n"
+        with click.Context(function_obj) as ctx:
+            description += ctx.get_help()
+        ids.append(functionname)
+        documents.append(description)
+        metadatas.append({"mod": mod, "function": functionname, "source": "fremake.py"})
     
 collection.upsert(ids=ids, documents=documents, metadatas=metadatas)
     
-
 ## testing
 testme = False
 if testme:
