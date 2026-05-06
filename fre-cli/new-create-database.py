@@ -1,13 +1,5 @@
 import ast 
 
-class MethodDocument():
-
-    def __init__(self):
-        self.modulename = None
-        self.params = {}
-        self.note = {}
-        self.raises = {}
-
 class Document():
 
     def __init__(self, modulefilename, modulename):
@@ -18,12 +10,18 @@ class Document():
         self.rawcontent = None
 
     def read_file(self):
+        """Reads the module file and stores the entire content""" 
         with open(self.modulefilename, "r") as f:
             self.rawcontent = f.read()
 
     def get_top_docstring(self) -> str | None:
+        """Gets the top-level docstring of the module, if it exists"""
         tree = ast.parse(self.rawcontent)
-        self.documents["overview"] = ast.get_docstring(tree)
+        docstring = ast.get_docstring(tree)
+        if docstring is not None:
+            docstring = docstring.strip()
+            if docstring:
+                self.documents["overview"] = docstring
 
     def parse_params(self, params_docstring: str) -> list[str]:
         params = []
@@ -53,6 +51,7 @@ class Document():
 
 
     def parse_docstring(self, docstring_in):
+        """Parses a docstring into its components: overview, params, notes, raises"""
         
         docstring = docstring_in
 
@@ -68,7 +67,9 @@ class Document():
         return {"overview": docstring, "params": params, "notes": notes}
 
 
-    def get_param_docstrings(self):
+    def docstrings_to_sentences(self):
+        """Parses the docstrings of the module and stores them as sentences"""
+
         tree = ast.parse(self.rawcontent)
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef):
