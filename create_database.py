@@ -1,9 +1,7 @@
 import importlib
 import importlib.util
 import inspect
-import sys
 import click
-from pathlib import Path
 
 class ModuleDocument():
 
@@ -152,38 +150,47 @@ class ModuleDocument():
 
 class CommandDocument():
 
-    def __init__(self, filename, filedir: str|Path = Path("./")):
+    def __init__(self, modulename, groupcommand: str):
 
-        self.filename = Path(filename)
-        self.filedir = Path(filedir)
-        self.modulename = self.filename.stem
+        self.modulename = modulename
+        self.groupcommand = groupcommand
+        self.documents = {"commands": {}, "overview": None}
 
     def get_click_commands(self) -> list[str]:
         """
-        Returns a list of Click command names found in self.filename.
+        Returns a list of Click command names registered on the Click group
+        defined in this module.
         """
-        mod = importlib.import_module(self.filename.stem)
-
-        commands = []
-
-        def collect_commands(command: click.Command, parent_path: str = "") -> None:
-            command_path = f"{parent_path} {command.name}".strip()
-            commands.append(command_path)
-
-            if isinstance(command, click.Group):
-                for subcommand_name in command.list_commands(click.Context(command)):
-                    subcommand = command.get_command(click.Context(command), subcommand_name)
-                    if subcommand is not None:
-                        collect_commands(subcommand, command_path)
-
+        mod = importlib.import_module(self.modulename)
+        
         for name in dir(mod):
-            command = getattr(mod, name)
-            if isinstance(command, click.Command):
-                collect_commands(command)
-
-        return commands
-
+            obj = getattr(mod, name)
+            if isinstance(obj, click.Command): #and obj.name == self.groupcommand:
+                docstring = inspect.getdoc(obj)
+                ctx = click.Context(obj)    
+                help_output = obj.get_help(ctx)
+                self.documents["commands"][obj.name] = {
+                    "overview": self._clean(docstring),
+                    "help": self._clean(help_output)
+                }
     
+    def _clean(self, string_in):
+        """
+        Utility method
+        """
 
-
-
+        for escape_char in ("\n", "\t", "\r", "\b", "\f", "\v", "\0"):
+            string_in = string_in.replace(escape_char, "")
+        return string_in.strip()
+    
+    def __repr__(self):
+        commands_str = ""
+        for name, content in self.documents["commands"].items():
+            commands_str += f"  {name}:\n"
+            commands_str += f"    Overview: {content['overview']}\n"
+            commands_str += f"    Help: {content['help']}\n\n"
+        
+        return (
+            f"COMMAND GROUP: {self.groupcommand}\n"
+            f"Commands:\n{commands_str}"
+        )
