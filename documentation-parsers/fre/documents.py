@@ -14,7 +14,12 @@ class MetadataEntry(TypedDict):
 
 class Document():
 
+    """
+    Base class for documents. Contains utility functions for parsing docstrings
+    """
+
     def __init__(self, modulename: str, packagename: str = "fre"):
+        """Constructor"""
         self.packagename = packagename
         self.modulename = modulename
         self.metadata: dict[str, MetadataEntry] = {}
@@ -22,7 +27,7 @@ class Document():
 
     def _check(self, docstring):
         """
-        Return empty string of docstring is None
+        Return empty string if docstring is None
         """
         if docstring is not None:
             docstring_stripped = docstring.strip()
@@ -43,7 +48,7 @@ class Document():
 class ModuleDocument(Document):
 
     """
-    Class to convert docstrings in a module to a report format
+    Class to parse and summarize docstrings in a module
     Example use case:
     self.packagename = "fre"
     self.modulename = "fre.make.create_checkout_script"
@@ -180,7 +185,7 @@ class ModuleDocument(Document):
 
     def parse_params(self, params_docstring: str) -> list[str]|str:
         """
-        parses docstrings such as
+        Parses docstrings such as
         ```
         :param src_dir: is the absolute directory path to git clone the source code
         :type src_dir: str
@@ -196,9 +201,12 @@ class ModuleDocument(Document):
         
         params = []
         for param_and_type_string in params_docstring.split(":param"):
-            paramstuff, typestring = param_and_type_string.split(":type", 1)
+            try:
+                paramstuff, typestuff = param_and_type_string.split(":type", 1)
+            except Exception as exc:
+                raise RuntimeError(f"Could not parse {param_and_type_string} into param and type") from exc
             paramname, paramstring = paramstuff.split(":", 1)
-            type_ = typestring.split(":", 1)[1]
+            type_ = typestuff.split(":", 1)[1]
             
             paramname = self._check(paramname)
             params.append(
@@ -210,7 +218,7 @@ class ModuleDocument(Document):
     
     def parse_raises(self, raises_docstring) -> list[str]|str:
         """
-        parses docstrings such as ':raises ValueError: Error if platform does not exist in platforms.yaml'
+        Parses docstrings such as ':raises ValueError: Error if platform does not exist in platforms.yaml'
         and saves the content as 'ValueError is raised if platform does not exist in platforms.yaml.'
         """
 
@@ -227,13 +235,14 @@ class ModuleDocument(Document):
 
     def parse_notes(self, notes_docstring) -> str:
         """
-        parses docstrings such as '.. note:: This is some note'        
+        Parses docstrings such as '.. note:: This is some note'        
         and saves the content as 'This is some note.'
         """    
         if not self._check(notes_docstring): return ""
         return self._clean(notes_docstring)
 
     def __repr__(self):
+        """Pretty print for instance of this class"""
         functions = []
         for name, report in self.functions.items():
             functions.append(f"* {name}:\n{report}\n")
@@ -323,7 +332,7 @@ class CommandDocument(Document):
 
     def summarize_docstring_dict(self, command_dict):
         """
-        Converts the sentences in self.subcommands into a report format.
+        Summarizes the command docstring and help information into a paragraph.
         """
         report = (
             f"{command_dict['overview']} "
@@ -332,6 +341,7 @@ class CommandDocument(Document):
         return report
 
     def __repr__(self):
+        """Pretty print for instance of this class"""
         commands = []
         for name, report in self.subcommands.items():
             commands.append(f"* {name}:\n{report}\n")

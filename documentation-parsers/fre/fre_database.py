@@ -78,10 +78,12 @@ class freDatabase:
     #}
 
     def __init__(self):
+        """Consructor"""
         self.tools_dict = copy.deepcopy(self.TOOLS_DICT)
         self.commands_dict = copy.deepcopy(self.COMMANDS_DICT)
 
     def summarize(self):
+        """Summarizes the docstrings in the modules and commands"""
         for tool, tool_dict in self.tools_dict.items():
             for modulename in tool_dict.keys():
                 try:
@@ -89,7 +91,7 @@ class freDatabase:
                     moduledocument.summarize()
                     self.tools_dict[tool][modulename] = moduledocument
                 except Exception as exc:
-                    print(f"Skipping module {modulename}: {exc}")
+                    raise RuntimeError(f"Skipping module {modulename}") from exc
         
         for command, command_dict in self.commands_dict.items():
             try:
@@ -97,10 +99,10 @@ class freDatabase:
                 commanddocument.summarize()
                 self.commands_dict[command] = commanddocument
             except Exception as exc:
-                print(f"Skipping command group {command}: {exc}")
+                raise RuntimeError(f"Skipping command group {command}") from exc
         
     def to_chromadb(self):
-        # Convert the summarized data into a format suitable for ChromaDB
+        """Converts the summarized data into document_list, metadata_list, and id_list for ChromaDB"""
         document_list = []
         metadata_list = []
         id_list = []
