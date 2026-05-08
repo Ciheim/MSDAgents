@@ -1,7 +1,6 @@
 import importlib
 import inspect
 import re
-from types import SimpleNamespace
 from typing import TypedDict
 
 import click
@@ -19,7 +18,6 @@ class Document():
         self.packagename = packagename
         self.modulename = modulename
         self.metadata: dict[str, MetadataEntry] = {}
-        self.overview = None
         self.docstring_dict = {}
 
     def _check(self, docstring):
@@ -84,10 +82,8 @@ class ModuleDocument(Document):
     def __init__(self, modulename: str, packagename: str = "fre"):
         """Constructor"""
         super().__init__(modulename, packagename)
-        self.summary = SimpleNamespace(
-            overview = None,
-            functions = None
-        )
+        self.overview = None
+        self.functions = {}
 
         #sys.path.insert(0, str(Path(modulename).parent))
         self.mod = importlib.import_module(self.modulename)
@@ -98,10 +94,10 @@ class ModuleDocument(Document):
         """
 
         #set module overview
-        self.summary.overview = self._check(inspect.getdoc(self.mod))
+        self.overview = self._check(inspect.getdoc(self.mod))
         
         #initialize dictionary to hold function documentation
-        self.summary.functions = {}
+        self.functions = {}
 
         #for each function in module
         for name, func in inspect.getmembers(self.mod, inspect.isfunction):
@@ -126,7 +122,7 @@ class ModuleDocument(Document):
             self.docstring_dict[name] = docstring_dict
             
             #convert doc_dict to paragraphsn
-            self.summary.functions[name] = self.summarize_docstring_dict(docstring_dict)
+            self.functions[name] = self.summarize_docstring_dict(docstring_dict)
             
             #save metadata 
             self.metadata[name] = {
@@ -234,7 +230,7 @@ class ModuleDocument(Document):
 
     def __repr__(self):
         functions = []
-        for name, report in self.summary.functions.items():
+        for name, report in self.functions.items():
             functions.append(f"* {name}:\n{report}\n")
 
         functions_text = "\n".join(functions)
@@ -242,7 +238,7 @@ class ModuleDocument(Document):
         return (
             "__________________________________\n"
             f"MODULE:\n{self.modulename}\n\n"
-            f"Overview:\n{self.summary.overview}\n\n"
+            f"Overview:\n{self.overview}\n\n"
             f"Functions:\n{functions_text}"
             "__________________________________"
         )
@@ -276,14 +272,12 @@ class CommandDocument(Document):
     }
     """
 
-    def __init__(self, modulename: str, groupcommand: str, packagename: str = "fre"):
+    def __init__(self, modulename: str, groupcommand: str = None, packagename: str = "fre"):
         """Constructor"""
         super().__init__(modulename, packagename)
         self.groupcommand = groupcommand
-        self.summary = SimpleNamespace(
-            overview=None,
-            commands=None
-        )
+        self.overview = None
+        self.commands = {}
 
     def summarize(self):
         """
@@ -292,10 +286,10 @@ class CommandDocument(Document):
         mod = importlib.import_module(self.modulename)
 
         #set module overview
-        self.summary.overview = self._check(inspect.getdoc(mod))
+        self.overview = self._check(inspect.getdoc(mod))
 
         #initialize dictionary to hold command documentation
-        self.summary.commands = {}
+        self.commands = {}
 
         for name in dir(mod):
             obj = getattr(mod, name)
@@ -314,7 +308,7 @@ class CommandDocument(Document):
                 self.docstring_dict[name] = command_dict
 
                 #convert command_dict to paragraph
-                self.summary.commands[name] = self.summarize_docstring_dict(command_dict)
+                self.commands[name] = self.summarize_docstring_dict(command_dict)
 
                 #save metadata
                 self.metadata[name] = {
@@ -335,7 +329,7 @@ class CommandDocument(Document):
 
     def __repr__(self):
         commands = []
-        for name, report in self.summary.commands.items():
+        for name, report in self.commands.items():
             commands.append(f"* {name}:\n{report}\n")
 
         commands_text = "\n".join(commands)
@@ -343,7 +337,7 @@ class CommandDocument(Document):
         return (
             "__________________________________\n"
             f"MODULE:\n{self.modulename}\n\n"
-            f"Overview:\n{self.summary.overview}\n\n"
+            f"Overview:\n{self.overview}\n\n"
             f"Commands:\n{commands_text}"
             "__________________________________"
         )
