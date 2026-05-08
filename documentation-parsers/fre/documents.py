@@ -252,7 +252,7 @@ class ModuleDocument(Document):
         return (
             "__________________________________\n"
             f"MODULE:\n{self.modulename}\n\n"
-            f"Overview:\n{self.overview}\n\n"
+            f"Overview:\n{self.module_overview}\n\n"
             f"Functions:\n{functions_text}"
             "__________________________________"
         )
