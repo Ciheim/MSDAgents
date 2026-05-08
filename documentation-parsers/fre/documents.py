@@ -351,7 +351,7 @@ class CommandDocument(Document):
         return (
             "__________________________________\n"
             f"MODULE:\n{self.modulename}\n\n"
-            f"Overview:\n{self.overview}\n\n"
+            f"Overview:\n{self.command_overview}\n\n"
             f"Commands:\n{commands_text}"
             "__________________________________"
         )
