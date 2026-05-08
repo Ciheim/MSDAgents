@@ -92,7 +92,7 @@ class ModuleDocument(Document):
         #sys.path.insert(0, str(Path(modulename).parent))
         self.mod = importlib.import_module(self.modulename)
 
-    def docstrings_to_summary(self):
+    def summarize(self):
         """
         Parses the module file and saves docstrings into this object.
         """
@@ -112,21 +112,21 @@ class ModuleDocument(Document):
             docstring = inspect.getdoc(func)
             
             #split docstring into overview, params, raises, and notes
-            docstring_dict = self.split_docstring(docstring)        
+            parsed_docstring = self.split_docstring(docstring)
 
             #save
-            doc_dict= {
-                "overview": self._clean(docstring_dict["overview"]),
-                "params": self.parse_params(docstring_dict["params"]),
-                "raises": self.parse_raises(docstring_dict["raises"]),
-                "notes": self.parse_notes(docstring_dict["notes"])
+            docstring_dict= {
+                "overview": self._clean(parsed_docstring["overview"]),
+                "params": self.parse_params(parsed_docstring["params"]),
+                "raises": self.parse_raises(parsed_docstring["raises"]),
+                "notes": self.parse_notes(parsed_docstring["notes"])
             }
             
             #store
-            self.docstring_dict[name] = doc_dict
+            self.docstring_dict[name] = docstring_dict
             
             #convert doc_dict to paragraphsn
-            self.summary.functions[name] = self.summarize(doc_dict)
+            self.summary.functions[name] = self.summarize_docstring_dict(docstring_dict)
             
             #save metadata 
             self.metadata[name] = {
@@ -135,7 +135,7 @@ class ModuleDocument(Document):
                 "package": self.packagename
             }
 
-    def summarize(self, docstring_dict):
+    def summarize_docstring_dict(self, docstring_dict):
         """
         Converts the sentences in self.functions into a report format.
         """
@@ -195,16 +195,15 @@ class ModuleDocument(Document):
         
         params = []
         for param_and_type_string in params_docstring.split(":param"):
-            parts = param_and_type_string.split(":type", 1)
-            paramstuff = parts[0]
-            typestring = parts[1] if len(parts) == 2 else None
+            paramstuff, typestring = param_and_type_string.split(":type", 1)
             paramname, paramstring = paramstuff.split(":", 1)
+            type_ = typestring.split(":", 1)[1]
+            
             paramname = self._check(paramname)
-            entry = f"{paramname} {self._clean(paramstring)}.  "
-            if typestring is not None:
-                type_ = typestring.split(":", 1)[1]
-                entry += f"{paramname} is of type {self._clean(type_)}.  "
-            params.append(entry)
+            params.append(
+                f"{paramname} {self._clean(paramstring)}.  "
+                f"{paramname} is of type {self._clean(type_)}.  "
+            )
 
         return params
     
@@ -234,8 +233,6 @@ class ModuleDocument(Document):
         return self._clean(notes_docstring)
 
     def __repr__(self):
-        if self.summary.functions is None:
-            return f"ModuleDocument({self.modulename!r}) — call docstrings_to_summary() first"
         functions = []
         for name, report in self.summary.functions.items():
             functions.append(f"* {name}:\n{report}\n")
@@ -288,7 +285,7 @@ class CommandDocument(Document):
             commands=None
         )
 
-    def docstrings_to_summary(self):
+    def summarize(self):
         """
         Parses the module file and saves Click command docstrings into this object.
         """
@@ -317,7 +314,7 @@ class CommandDocument(Document):
                 self.docstring_dict[name] = command_dict
 
                 #convert command_dict to paragraph
-                self.summary.commands[name] = self.summarize(command_dict)
+                self.summary.commands[name] = self.summarize_docstring_dict(command_dict)
 
                 #save metadata
                 self.metadata[name] = {
@@ -326,7 +323,7 @@ class CommandDocument(Document):
                     "package": self.packagename
                 }
 
-    def summarize(self, command_dict):
+    def summarize_docstring_dict(self, command_dict):
         """
         Converts the sentences in self.commands into a report format.
         """
@@ -337,8 +334,6 @@ class CommandDocument(Document):
         return report
 
     def __repr__(self):
-        if self.summary.commands is None:
-            return f"CommandDocument({self.modulename!r}) — call docstrings_to_summary() first"
         commands = []
         for name, report in self.summary.commands.items():
             commands.append(f"* {name}:\n{report}\n")
