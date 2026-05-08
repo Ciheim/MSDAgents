@@ -107,18 +107,16 @@ class freDatabase:
 
         for tool, tool_dict in self.tools_dict.items():
             for modulename, moduledocument in tool_dict.items():
-                if moduledocument is not None:
-                    for function in moduledocument.functions:
-                        document_list.append(moduledocument.overview + moduledocument.functions[function])
-                        metadata_list.append(moduledocument.metadata[function])
-                        id_list.append(f"{modulename}.{function}")
+                for function in moduledocument.functions:
+                    document_list.append(moduledocument.module_overview + moduledocument.functions[function])
+                    metadata_list.append(moduledocument.metadata[function])
+                    id_list.append(f"{modulename}.{function}")
         
             for command, commanddocument in self.commands_dict.items():
-                if commanddocument is not None:
-                    for subcommand in commanddocument.commands:
-                        document_list.append(commanddocument.overview + commanddocument.commands[subcommand])
-                        metadata_list.append(commanddocument.metadata)
-                        id_list.append(f"{command}.{subcommand}")         
+                for subcommand in commanddocument.subcommands:
+                    document_list.append(commanddocument.command_overview + commanddocument.subcommands[subcommand])
+                    metadata_list.append(commanddocument.metadata)
+                    id_list.append(f"{command}.{subcommand}")         
         
         return document_list, metadata_list, id_list
 
