@@ -86,7 +86,7 @@ for module_group in allmodules:
     for amodule in module_group:
         try:
             document = ModuleDocument(amodule)
-            document.docstrings_to_report()
+            document.summarize()
             documents[amodule] = document
         except Exception as exc:
             print(f"Skipping module {amodule}: {exc}")
@@ -96,7 +96,7 @@ for command_group in allcommands:
     for command in command_group:
         try:
             document = CommandDocument(**command)
-            document.get_click_commands()
+            document.summarize()
             clickdocuments[command["modulename"]] = document
         except Exception as exc:
             print(f"Skipping command group {command['modulename']}: {exc}")

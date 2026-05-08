@@ -2,52 +2,89 @@ import importlib
 import inspect
 import re
 from types import SimpleNamespace
+from typing import TypedDict
 
-import click        
+import click
 
-class ModuleDocument():
+
+class MetadataEntry(TypedDict):
+    name: str
+    module: str
+    package: str
+
+
+class Document():
 
     def __init__(self, modulename: str, packagename: str = "fre"):
-        """
-        Class to convert docstrings in a module to a report format
-        Example use case:
-        self.packagename = "fre"
-        self.modulename = "fre.make.fremake"
-        self.documentation.overview = "This module contains functions to run the fremake script."
-        self.documentation.functions = {
-            "run_fremake_script": {
-            "overview": "This function runs the fremake script."
-            "params": [
-                "src_dir is the absolute directory path to git clone the source code. src_dir is of type str."
-            ],
-            "raises": [
-                "ValueError is raised when platform does not exist in platforms.yaml."
-            ],
-            "notes": "Note: This function is a wrapper around the fremake script."
-            }
-        }
-        self.documentation.overview = "This module contains functions to run the fremake script."
-        self.documentation.functions = {
-            "run_fremake_script": "This function runs the fremake script.
-             The function has the following parameters: src_dir is the absolute directory path to git clone the source code. 
-             src_dir is of type str. 
-             The function can raise the following exceptions: ValueError is raised when platform does not exist in platforms.yaml. 
-             Note: This function is a wrapper around the fremake script."
-        }
-        self.metadata = {
-            "run_fremake_script": {
-                "name": "run_fremake_script",
-                "module": "fre.make.fremake",
-                "package": "fre"
-            }
-        }
-        """
         self.packagename = packagename
         self.modulename = modulename
-        self.metadata = {} 
+        self.metadata: dict[str, MetadataEntry] = {}
         self.overview = None
-        self.doc_dict = {} 
-        self.documentation = SimpleNamespace(
+        self.docstring_dict = {}
+
+    def _check(self, docstring):
+        """
+        Utility method
+        """
+        if docstring is not None:
+            docstring_stripped = docstring.strip()
+            if docstring_stripped:
+                return docstring_stripped
+        return ""
+
+    def _clean(self, string_in):
+        """
+        Utility method
+        """
+        for escape_char in ("\n", "\t", "\r", "\b", "\f", "\v", "\0"):
+            string_in = string_in.replace(escape_char, "")
+        string_in = re.sub(r' {3,}', '  ', string_in)
+        return string_in.strip()
+
+
+class ModuleDocument(Document):
+
+    """
+    Class to convert docstrings in a module to a report format
+    Example use case:
+    self.packagename = "fre"
+    self.modulename = "fre.make.create_checkout_script"
+    self.documentation.overview = "top level docstring for the module"
+    self.dict_ = {
+        "baremetal_checkout_write": {
+        "overview": "baremetal_checkout_write is called by checkout_create..."
+        "params": [
+            "model_yaml is a 'freyaml' class object containing.. .model_yaml is of type yamlfre.freyaml",
+            "src_dir is the absolute directory path to git clone the source code. src_dir is of type str."
+        ],
+        "raises": [
+            "ValueError is raised when platform does not exist in platforms.yaml."
+        ],
+        "notes": "This is the docstring starting with .. note::"
+        }
+    }
+    self.summary.overview = "top level docstring for the module"
+    self.summary.functions = {"baremetal_checkout_write": 
+        "baremetal_checkout_write is called by checkout_create...
+            The function has the following parameters: model_yaml is a 'freyaml' class object containing.. .
+            model_yaml is of type yamlfre.freyaml. 
+            src_dir is the absolute directory path to git clone the source code. src_dir is of type str.
+            The following errors can be raised: ValueError is raised when platform does not exist in platforms.yaml. 
+            Note: This is the docstring starting with .. note::"
+    }
+    self.metadata = {
+        "baremetal_checkout_write": {
+            "name": "baremetal_checkout_write",
+            "module": "fre.make.create_checkout_script",
+            "package": "fre"
+        }
+    }
+    """
+
+    def __init__(self, modulename: str, packagename: str = "fre"):
+        """Constructor"""
+        super().__init__(modulename, packagename)
+        self.summary = SimpleNamespace(
             overview = None,
             functions = None
         )
@@ -55,55 +92,72 @@ class ModuleDocument():
         #sys.path.insert(0, str(Path(modulename).parent))
         self.mod = importlib.import_module(self.modulename)
 
-    def docstrings_to_report(self):
+    def docstrings_to_summary(self):
         """
         Parses the module file and saves docstrings into this object.
         """
 
-        self.documentation.overview = self._check(inspect.getdoc(self.mod))
-        self.documentation.functions = {}
+        #set module overview
+        self.summary.overview = self._check(inspect.getdoc(self.mod))
+        
+        #initialize dictionary to hold function documentation
+        self.summary.functions = {}
 
+        #for each function in module
         for name, func in inspect.getmembers(self.mod, inspect.isfunction):
             if inspect.getmodule(func) is not self.mod:
                 continue
-                
+
+            #get function docstring 
             docstring = inspect.getdoc(func)
+            
+            #split docstring into overview, params, raises, and notes
             docstring_dict = self.split_docstring(docstring)        
 
+            #save
             doc_dict= {
                 "overview": self._clean(docstring_dict["overview"]),
                 "params": self.parse_params(docstring_dict["params"]),
                 "raises": self.parse_raises(docstring_dict["raises"]),
                 "notes": self.parse_notes(docstring_dict["notes"])
             }
-            self.doc_dict[name] = doc_dict
-            self.documentation.functions[name] = self.convert_to_reports(doc_dict)
+            
+            #store
+            self.docstring_dict[name] = doc_dict
+            
+            #convert doc_dict to paragraphsn
+            self.summary.functions[name] = self.summarize(doc_dict)
+            
+            #save metadata 
             self.metadata[name] = {
                 "name": name,
                 "module": self.modulename,
                 "package": self.packagename
             }
 
-    def convert_to_reports(self, doc_dict):
+    def summarize(self, docstring_dict):
         """
         Converts the sentences in self.functions into a report format.
         """
         
-        report = doc_dict["overview"]
-        if doc_dict["params"]:
-            report += " The function has the following parameters: "
-            for param in doc_dict["params"]:
-                report += param
-        if doc_dict["raises"]:
-            report += " The function can raise the following exceptions: "
-            for raise_ in doc_dict["raises"]:
-                report += raise_
-        if doc_dict["notes"]:
-            report += " Note: " + doc_dict["notes"]
+        summary = docstring_dict["overview"]
+        if docstring_dict["params"]:
+            summary += " The function has the following parameters: "
+            for param in docstring_dict["params"]:
+                summary += param
+        if docstring_dict["raises"]:
+            summary += " The function can raise the following exceptions: "
+            for raise_ in docstring_dict["raises"]:
+                summary += raise_
+        if docstring_dict["notes"]:
+            summary += " Note: " + docstring_dict["notes"]
             
-        return report
+        return summary
 
     def split_docstring(self, docstring_in):
+        """
+        Splits a function docstring into overview, params, raises, and notes
+        """
         
         docstring = self._check(docstring_in)
         notes = raises = params = ""
@@ -141,15 +195,16 @@ class ModuleDocument():
         
         params = []
         for param_and_type_string in params_docstring.split(":param"):
-            paramstuff, typestring = param_and_type_string.split(":type", 1)
+            parts = param_and_type_string.split(":type", 1)
+            paramstuff = parts[0]
+            typestring = parts[1] if len(parts) == 2 else None
             paramname, paramstring = paramstuff.split(":", 1)
-            type_ = typestring.split(":", 1)[1]
-            
             paramname = self._check(paramname)
-            params.append(
-                f"{paramname} {self._clean(paramstring)}.  "
-                f"{paramname} is of type {self._clean(type_)}.  "
-            )
+            entry = f"{paramname} {self._clean(paramstring)}.  "
+            if typestring is not None:
+                type_ = typestring.split(":", 1)[1]
+                entry += f"{paramname} is of type {self._clean(type_)}.  "
+            params.append(entry)
 
         return params
     
@@ -178,29 +233,11 @@ class ModuleDocument():
         if not self._check(notes_docstring): return ""
         return self._clean(notes_docstring)
 
-        
-    def _check(self, docstring):
-        """
-        Utility method
-        """
-        if docstring is not None:
-            docstring_stripped = docstring.strip()
-            if docstring_stripped:
-                return docstring_stripped        
-        return ""
-    
-    def _clean(self, string_in):
-        """
-        Utility method
-        """
-        for escape_char in ("\n", "\t", "\r", "\b", "\f", "\v", "\0"):
-            string_in = string_in.replace(escape_char, "")
-        string_in = re.sub(r' {3,}', '  ', string_in)
-        return string_in.strip()
-
     def __repr__(self):
+        if self.summary.functions is None:
+            return f"ModuleDocument({self.modulename!r}) — call docstrings_to_summary() first"
         functions = []
-        for name, report in self.documentation.functions.items():
+        for name, report in self.summary.functions.items():
             functions.append(f"* {name}:\n{report}\n")
 
         functions_text = "\n".join(functions)
@@ -208,70 +245,110 @@ class ModuleDocument():
         return (
             "__________________________________\n"
             f"MODULE:\n{self.modulename}\n\n"
-            f"Overview:\n{self.documentation.overview}\n\n"
+            f"Overview:\n{self.summary.overview}\n\n"
             f"Functions:\n{functions_text}"
             "__________________________________"
         )
 
 
-class CommandDocument():
+class CommandDocument(Document):    
 
-    def __init__(self, modulename, groupcommand: str):
+    """
+    Class to convert docstrings in a module to a report format for Click commands.
+    Example use case:
+    self.packagename = "fre"
+    self.modulename = "fre.make.fremake"
+    self.groupcommand = "fre make"
+    self.docstring_dict = {
+        "all": {
+            "overview": "all is the main command that calls all other commands in the group.",
+            "help": "output from fre make all --help"
+        }
+    }
+    self.summary.overview = "top level docstring for the module"
+    self.summary.commands = {"all":
+        "all is the main command that calls all other commands in the group.
+            The help information for this command is as follows: ..."
+    }
+    self.metadata = {
+        "all": {
+            "name": "all",
+            "module": "fre.make.fremake",
+            "package": "fre"
+        }
+    }
+    """
 
-        self.modulename = modulename
+    def __init__(self, modulename: str, groupcommand: str, packagename: str = "fre"):
+        """Constructor"""
+        super().__init__(modulename, packagename)
         self.groupcommand = groupcommand
-        self.functions = {}
-        self.overview = None
+        self.summary = SimpleNamespace(
+            overview=None,
+            commands=None
+        )
 
-    def get_click_commands(self) -> list[str]:
+    def docstrings_to_summary(self):
         """
-        Returns a list of Click command names registered on the Click group
-        defined in this module.
+        Parses the module file and saves Click command docstrings into this object.
         """
         mod = importlib.import_module(self.modulename)
-        self.functions = {}
-        
+
+        #set module overview
+        self.summary.overview = self._check(inspect.getdoc(mod))
+
+        #initialize dictionary to hold command documentation
+        self.summary.commands = {}
+
         for name in dir(mod):
             obj = getattr(mod, name)
             if isinstance(obj, click.Command): #and obj.name == self.groupcommand:
                 docstring = inspect.getdoc(obj)
-                ctx = click.Context(obj)    
+                ctx = click.Context(obj)
                 help_output = obj.get_help(ctx)
-                self.functions[obj.name] = {
+
+                #save
+                command_dict = {
                     "overview": self._clean(self._check(docstring)),
                     "help": self._check(help_output)
                 }
 
-        return list(self.functions.keys())
-    
-    def _check(self, docstring):
-        """
-        Utility method
-        """
-        if docstring is not None:
-            docstring_stripped = docstring.strip()
-            if docstring_stripped:
-                return docstring_stripped
-        return ""
+                #store
+                self.docstring_dict[name] = command_dict
 
-    
-    def _clean(self, string_in):
+                #convert command_dict to paragraph
+                self.summary.commands[name] = self.summarize(command_dict)
+
+                #save metadata
+                self.metadata[name] = {
+                    "name": name,
+                    "module": self.modulename,
+                    "package": self.packagename
+                }
+
+    def summarize(self, command_dict):
         """
-        Utility method
+        Converts the sentences in self.commands into a report format.
         """
-        for escape_char in ("\n", "\t", "\r", "\b", "\f", "\v", "\0"):
-            string_in = string_in.replace(escape_char, "")
-        string_in = re.sub(r' {3,}', '  ', string_in)
-        return string_in.strip()
-    
+        report = (
+            f"{command_dict['overview']} "
+            f"The help information for this command is as follows: {command_dict['help']}"
+        )
+        return report
+
     def __repr__(self):
-        commands_str = ""
-        for name, content in self.functions.items():
-            commands_str += f"  {name}:\n"
-            commands_str += f"    Overview: {content['overview']}\n"
-            commands_str += f"    Help: {content['help']}\n\n"
-        
+        if self.summary.commands is None:
+            return f"CommandDocument({self.modulename!r}) — call docstrings_to_summary() first"
+        commands = []
+        for name, report in self.summary.commands.items():
+            commands.append(f"* {name}:\n{report}\n")
+
+        commands_text = "\n".join(commands)
+
         return (
-            f"COMMAND GROUP: {self.groupcommand}\n"
-            f"Commands:\n{commands_str}"
+            "__________________________________\n"
+            f"MODULE:\n{self.modulename}\n\n"
+            f"Overview:\n{self.summary.overview}\n\n"
+            f"Commands:\n{commands_text}"
+            "__________________________________"
         )
