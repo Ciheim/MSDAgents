@@ -1,6 +1,5 @@
 import copy
 
-import fre
 from documents import ModuleDocument, CommandDocument
 
 class FreDatabase:
@@ -114,14 +113,15 @@ class FreDatabase:
                     metadata_list.append(moduledocument.metadata[function])
                     id_list.append(f"{modulename}.{function}")
         
-            for command, commanddocument in self.commands_dict.items():
-                for subcommand in commanddocument.subcommands:
-                    document_list.append(commanddocument.command_overview + commanddocument.subcommands[subcommand])
-                    metadata_list.append(commanddocument.metadata)
-                    id_list.append(f"{command}.{subcommand}")         
+        for command, commanddocument in self.commands_dict.items():
+            for subcommand in commanddocument.subcommands:
+                document_list.append(commanddocument.command_overview + commanddocument.subcommands[subcommand])
+                metadata_list.append(commanddocument.metadata[subcommand])
+                id_list.append(f"{command}.{subcommand}")         
         
         return document_list, metadata_list, id_list
 
-fre_db = FreDatabase()
-fre_db.summarize()
-document_list, metadata_list, id_list = fre_db.to_chromadb()
+if __name__ == '__main__':
+    fre_db = FreDatabase()
+    fre_db.summarize()
+    document_list, metadata_list, id_list = fre_db.to_chromadb()
