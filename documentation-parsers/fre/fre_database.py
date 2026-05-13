@@ -3,7 +3,7 @@ import copy
 import fre
 from documents import ModuleDocument, CommandDocument
 
-class freDatabase:
+class FreDatabase:
 
     TOOLS_DICT = {
         "make": {
@@ -122,6 +122,6 @@ class freDatabase:
         
         return document_list, metadata_list, id_list
 
-fre = freDatabase()
-fre.summarize()
-document_list, metadata_list, id_list = fre.to_chromadb()
+fre_db = FreDatabase()
+fre_db.summarize()
+document_list, metadata_list, id_list = fre_db.to_chromadb()
