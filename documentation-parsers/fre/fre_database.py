@@ -78,7 +78,7 @@ class FreDatabase:
     #}
 
     def __init__(self):
-        """Consructor"""
+        """Constructor"""
         self.tools_dict = copy.deepcopy(self.TOOLS_DICT)
         self.commands_dict = copy.deepcopy(self.COMMANDS_DICT)
 
