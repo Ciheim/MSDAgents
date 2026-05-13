@@ -5,55 +5,55 @@ from documents import ModuleDocument, CommandDocument
 
 class FreDatabase:
 
-    TOOLS_DICT = {
+    TOOLS_DICT: dict[str, dict[str, ModuleDocument | None]] = {
         "make": {
-            "fre.make.create_checkout_script": ModuleDocument|None,
-            "fre.make.create_compile_script": ModuleDocument|None,
-            "fre.make.create_docker_script": ModuleDocument|None,
-            "fre.make.create_makefile_script": ModuleDocument|None,
-            "fre.make.make_helpers": ModuleDocument|None,
-            "fre.make.run_fremake_script": ModuleDocument|None
+            "fre.make.create_checkout_script": None,
+            "fre.make.create_compile_script": None,
+            "fre.make.create_docker_script": None,
+            "fre.make.create_makefile_script": None,
+            "fre.make.make_helpers": None,
+            "fre.make.run_fremake_script": None
         },
         "yaml": {
-            "fre.yamltools.abstract_classes": ModuleDocument|None,
-            "fre.yamltools.combine_yamls_script": ModuleDocument|None,
-            "fre.yamltools.constructors": ModuleDocument|None,
-            "fre.yamltools.helpers": ModuleDocument|None,
+            "fre.yamltools.abstract_classes": None,
+            "fre.yamltools.combine_yamls_script": None,
+            "fre.yamltools.constructors": None,
+            "fre.yamltools.helpers": None,
         },
         "app": {
-            "fre.app.generate_time_averages.cdoTimeAverager": ModuleDocument|None,
-            "fre.app.generate_time_averages.combine": ModuleDocument|None,
-            "fre.app.generate_time_averages.frenctoolsTimeAverager": ModuleDocument|None,
-            "fre.app.generate_time_averages.frepytoolsTimeAverager": ModuleDocument|None,
-            "fre.app.generate_time_averages.generate_time_averages": ModuleDocument|None,
-            "fre.app.generate_time_averages.timeAverager": ModuleDocument|None,
-            "fre.app.generate_time_averages.wrapper": ModuleDocument|None,
-            "fre.app.mask_atmos_plevel.mask_atmos_plevel": ModuleDocument|None,
-            "fre.app.regrid_xy.regrid_xy": ModuleDocument|None,
-            "fre.app.remap_pp_components.remap_pp_components": ModuleDocument|None,
+            "fre.app.generate_time_averages.cdoTimeAverager": None,
+            "fre.app.generate_time_averages.combine": None,
+            "fre.app.generate_time_averages.frenctoolsTimeAverager": None,
+            "fre.app.generate_time_averages.frepytoolsTimeAverager": None,
+            "fre.app.generate_time_averages.generate_time_averages": None,
+            "fre.app.generate_time_averages.timeAverager": None,
+            "fre.app.generate_time_averages.wrapper": None,
+            "fre.app.mask_atmos_plevel.mask_atmos_plevel": None,
+            "fre.app.regrid_xy.regrid_xy": None,
+            "fre.app.remap_pp_components.remap_pp_components": None,
         },
         "list": {
-            "fre.list_.list_experiments_script": ModuleDocument|None,
-            "fre.list_.list_platforms_script": ModuleDocument|None,
-            "fre.list_.list_pp_components_script": ModuleDocument|None,
+            "fre.list_.list_experiments_script": None,
+            "fre.list_.list_platforms_script": None,
+            "fre.list_.list_pp_components_script": None,
         },
         "pp": {
-            "fre.pp.checkout_script": ModuleDocument|None,
-            "fre.pp.configure_script_yaml": ModuleDocument|None,
-            "fre.pp.histval_script": ModuleDocument|None,
-            "fre.pp.install_script": ModuleDocument|None,
-            "fre.pp.nccheck_script": ModuleDocument|None,
-            "fre.pp.ppval_script": ModuleDocument|None,
-            "fre.pp.rename_split_script": ModuleDocument|None,
-            "fre.pp.run_script": ModuleDocument|None,
-            "fre.pp.split_netcdf_script": ModuleDocument|None,
-            "fre.pp.status_script": ModuleDocument|None,
-            "fre.pp.trigger_script": ModuleDocument|None,
-            "fre.pp.validate_script": ModuleDocument|None,
-            "fre.pp.wrapper_script": ModuleDocument|None
+            "fre.pp.checkout_script": None,
+            "fre.pp.configure_script_yaml": None,
+            "fre.pp.histval_script": None,
+            "fre.pp.install_script": None,
+            "fre.pp.nccheck_script": None,
+            "fre.pp.ppval_script": None,
+            "fre.pp.rename_split_script": None,
+            "fre.pp.run_script": None,
+            "fre.pp.split_netcdf_script": None,
+            "fre.pp.status_script": None,
+            "fre.pp.trigger_script": None,
+            "fre.pp.validate_script": None,
+            "fre.pp.wrapper_script": None
         },
         "run": {
-            "fre.run.frerunexample": ModuleDocument|None
+            "fre.run.frerunexample": None
         },
     }
 
