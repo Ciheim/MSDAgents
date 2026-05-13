@@ -67,16 +67,7 @@ class freDatabase:
         "fre.run.frerun": CommandDocument|None
     }
 
-    #commandcontent = {
-    #    "make": [{"modulename": "fre.make.fremake", "groupcommand": "fre make"}],
-    #    "yaml": [{"modulename": "fre.yamltools.freyamltools", "groupcommand": "fre yamltools"}],
-    #    "app": [{"modulename": "fre.app.freapp", "groupcommand": "fre app"}],
-    #    "catalog": [{"modulename": "fre.catalog.frecatalog", "groupcommand": "fre catalog"}],
-    #    "list": [{"modulename": "fre.list_.frelist", "groupcommand": "fre list"}],
-    #    "pp": [{"modulename": "fre.pp.frepp", "groupcommand": "fre pp"}],
-    #    "run": [{"modulename": "fre.run.frerun", "groupcommand": "fre run"}],
-    #}
-
+    
     def __init__(self):
         """Consructor"""
         self.tools_dict = copy.deepcopy(self.TOOLS_DICT)
@@ -122,6 +113,6 @@ class freDatabase:
         
         return document_list, metadata_list, id_list
 
-fre = freDatabase()
-fre.summarize()
-document_list, metadata_list, id_list = fre.to_chromadb()
+fredatabase = freDatabase()
+fredatabase.summarize()
+document_list, metadata_list, id_list = fredatabase.to_chromadb()
