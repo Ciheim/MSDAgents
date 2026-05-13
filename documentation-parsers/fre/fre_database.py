@@ -57,14 +57,14 @@ class FreDatabase:
         },
     }
 
-    COMMANDS_DICT = {
-        "fre.make.fremake": CommandDocument|None,
-        "fre.yamltools.freyamltools": CommandDocument|None,
-        "fre.app.freapp": CommandDocument|None,
-        "fre.catalog.frecatalog": CommandDocument|None,
-        "fre.list_.frelist": CommandDocument|None,
-        "fre.pp.frepp": CommandDocument|None,
-        "fre.run.frerun": CommandDocument|None
+    COMMANDS_DICT: dict[str, CommandDocument | None] = {
+        "fre.make.fremake": None,
+        "fre.yamltools.freyamltools": None,
+        "fre.app.freapp": None,
+        "fre.catalog.frecatalog": None,
+        "fre.list_.frelist": None,
+        "fre.pp.frepp": None,
+        "fre.run.frerun": None
     }
 
     #commandcontent = {
