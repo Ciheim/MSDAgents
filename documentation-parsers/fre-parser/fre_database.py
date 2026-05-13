@@ -76,12 +76,12 @@ class FreDatabase:
         
         for tool, tool_dict in self.tools_dict.items():
             for modulename in tool_dict:
-                #try:
-                moduledocument = ModuleDocument(modulename)
-                moduledocument.summarize()
-                self.tools_dict[tool][modulename] = moduledocument
-                #except Exception as exc:
-                #    raise RuntimeError(f"Skipping module {modulename}") from exc
+                try:
+                    moduledocument = ModuleDocument(modulename)
+                    moduledocument.summarize()
+                    self.tools_dict[tool][modulename] = moduledocument
+                except Exception as exc:
+                    print(f"Skipping module {modulename}: {exc}")
         
         for command in self.commands_dict:
             try:
@@ -89,7 +89,7 @@ class FreDatabase:
                 commanddocument.summarize()
                 self.commands_dict[command] = commanddocument
             except Exception as exc:
-                raise RuntimeError(f"Skipping command group {command}") from exc
+                print(f"Skipping command group {command}: {exc}")
         
     def to_chromadb(self):
         """Converts the summarized data into document_list, metadata_list, and id_list for ChromaDB"""
