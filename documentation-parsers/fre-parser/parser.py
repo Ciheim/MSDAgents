@@ -12,18 +12,15 @@ class MetadataEntry(TypedDict):
     package: str
 
 
-class Document():
+class DocumentUtility():
 
     """
     Base class for documents. Contains utility functions for parsing docstrings
     """
 
-    def __init__(self, modulename: str, packagename: str = "fre"):
+    def __init__(self):
         """Constructor"""
-        self.packagename = packagename
-        self.modulename = modulename
-        self.metadata: dict[str, MetadataEntry] = {}
-        self.docstring_dict = {}
+        pass
 
     def _check(self, docstring):
         """
@@ -45,7 +42,7 @@ class Document():
         return string_in.strip()
 
 
-class ModuleDocument(Document):
+class ModuleDocument(DocumentUtility):
 
     """
     Class to parse and summarize docstrings in a module
@@ -66,7 +63,7 @@ class ModuleDocument(Document):
         }
     }
     self.module_overview = "top level docstring for the module"
-    self.functions = {"baremetal_checkout_write": 
+    self.function_summaries = {"baremetal_checkout_write": 
         "baremetal_checkout_write is called by checkout_create...
             The function has the following parameters: model_yaml is a 'freyaml' class object containing.. .
             model_yaml is of type yamlfre.freyaml. 
@@ -74,7 +71,7 @@ class ModuleDocument(Document):
             The following errors can be raised: ValueError is raised when platform does not exist in platforms.yaml. 
             Note: This is the docstring starting with .. note::"
     }
-    self.metadata = {
+    self.function_metadata = {
         "baremetal_checkout_write": {
             "name": "baremetal_checkout_write",
             "module": "fre.make.create_checkout_script",
@@ -85,11 +82,15 @@ class ModuleDocument(Document):
 
     def __init__(self, modulename: str, packagename: str = "fre"):
         """Constructor"""
-        super().__init__(modulename, packagename)
+        super().__init__()
+        self.packagename = packagename
+        self.modulename = modulename
+        
         self.module_overview = ""
-        self.functions = {}
-
-        #sys.path.insert(0, str(Path(modulename).parent))
+        self.function_metadata: dict[str, MetadataEntry] = {}
+        self.function_summaries = {}
+        self.docstring_dict = {}
+        
         self.mod = importlib.import_module(self.modulename)
 
     def summarize(self):
@@ -97,40 +98,37 @@ class ModuleDocument(Document):
         Parses the module file and saves docstrings into this object.
         """
 
-        #set module overview
+        #set top level module documentation.  if None, set to empty string
         self.module_overview = self._check(inspect.getdoc(self.mod))
-        
-        #initialize dictionary to hold function documentation
-        self.functions = {}
-
+                
         #for each function in module
         for name, func in inspect.getmembers(self.mod, inspect.isfunction):
             
-            #check function is a module function and not built-in function
-            if inspect.getmodule(func) is not self.mod: continue
-
-            #get function docstring 
-            docstring = inspect.getdoc(func)
+            #if function is not a module function (i.e. is a built-in function), skip
+            if inspect.getmodule(func) is not self.mod: 
+                continue
             
             #split docstring into overview, params, raises, and notes
-            parsed_docstring = self.split_docstring(docstring)
+            splitted_docstring = self.split_docstring(
+                inspect.getdoc(func)
+            )
 
             #parse docstrings into lists of sentences
             docstring_dict= {
-                "overview": self._clean(parsed_docstring["overview"]),
-                "params": self.parse_params(parsed_docstring["params"]),
-                "raises": self.parse_raises(parsed_docstring["raises"]),
-                "notes": self.parse_notes(parsed_docstring["notes"])
+                "overview": self._clean(splitted_docstring["overview"]),
+                "params": self.parse_params(splitted_docstring["params"]),
+                "raises": self.parse_raises(splitted_docstring["raises"]),
+                "notes": self.parse_notes(splitted_docstring["notes"])
             }
             
             #store
-            self.docstring_dict[name] = docstring_dict
+            self.docstring_dict[name] = splitted_docstring
             
             #convert doc_dict to paragraphs
-            self.functions[name] = self.summarize_docstring_dict(docstring_dict)
+            self.function_summaries[name] = self.summarize_docstring_dict(docstring_dict)
             
             #save metadata 
-            self.metadata[name] = {
+            self.function_metadata[name] = {
                 "name": name,
                 "module": self.modulename,
                 "package": self.packagename
@@ -144,14 +142,14 @@ class ModuleDocument(Document):
         summary = docstring_dict["overview"]
         
         if docstring_dict["params"]:
-            summary += " The function has the following parameters: "
+            summary += " The function has the following parameters:\n"
             for param in docstring_dict["params"]:
-                summary += param
+                summary += f"- {param}\n"
         
         if docstring_dict["raises"]:
-            summary += " The function can raise the following exceptions: "
+            summary += " The function can raise the following exceptions:\n"
             for raise_ in docstring_dict["raises"]:
-                summary += raise_
+                summary += f"- {raise_}\n"
         
         if docstring_dict["notes"]:
             summary += " Note: " + docstring_dict["notes"]
@@ -165,8 +163,9 @@ class ModuleDocument(Document):
         """
         
         docstring = self._check(docstring_in)
+        
         notes = raises = params = ""
-
+        
         if docstring:
             if ".. note::" in docstring:
                 docstring, notes = docstring.split(".. note::", 1)
@@ -174,7 +173,6 @@ class ModuleDocument(Document):
                 docstring, raises = docstring.split(":raises", 1)
             if ":param" in docstring:
                 docstring, params = docstring.split(":param", 1)
-
 
         return {
             "overview": self._check(docstring),
@@ -244,7 +242,7 @@ class ModuleDocument(Document):
     def __repr__(self):
         """Pretty print for instance of this class"""
         functions = []
-        for name, report in self.functions.items():
+        for name, report in self.function_summaries.items():
             functions.append(f"* {name}:\n{report}\n")
 
         functions_text = "\n".join(functions)
@@ -258,7 +256,7 @@ class ModuleDocument(Document):
         )
 
 
-class CommandDocument(Document):    
+class CommandDocument(DocumentUtility):    
 
     """
     Class to convert docstrings in a module to a report format for Click commands.
@@ -271,7 +269,7 @@ class CommandDocument(Document):
             "help": "output from fre make all --help"
         }
     }
-    self.command_overview = "top level docstring for the module"
+    self.module_overview = "top level docstring for the module"
     self.subcommands = {"all":
         "all is the main command that calls all other commands in the group.
             The help information for this command is as follows: ..."
@@ -287,10 +285,14 @@ class CommandDocument(Document):
 
     def __init__(self, modulename: str, packagename: str = "fre"):
         """Constructor"""
-        super().__init__(modulename, packagename)
-        #self.groupcommand = groupcommand
-        self.command_overview = None
-        self.subcommands = {}
+
+        super().__init__()
+        self.modulename = modulename
+        self.packagename = packagename        
+        self.module_overview = None
+        self.docstring_dict = {}
+        self.subcommand_summaries = {}
+        self.subcommand_metadata = {}
 
     def summarize(self):
         """
@@ -299,17 +301,15 @@ class CommandDocument(Document):
         mod = importlib.import_module(self.modulename)
 
         #set module overview
-        self.command_overview = self._check(inspect.getdoc(mod))
+        self.module_overview = self._check(inspect.getdoc(mod))
 
-        #initialize dictionary to hold command documentation
-        self.subcommands = {}
-
-        for name in dir(mod):
+        for name in dir(mod):            
             obj = getattr(mod, name)
+            # if obj is an a Click command
             if isinstance(obj, click.Command): #and obj.name == self.groupcommand:
+            
                 docstring = inspect.getdoc(obj)
-                ctx = click.Context(obj)
-                help_output = obj.get_help(ctx)
+                help_output = obj.get_help(click.Context(obj))
 
                 #save
                 command_dict = {
@@ -321,10 +321,10 @@ class CommandDocument(Document):
                 self.docstring_dict[name] = command_dict
 
                 #convert command_dict to paragraph
-                self.subcommands[name] = self.summarize_docstring_dict(command_dict)
+                self.subcommand_summaries[name] = self.summarize_docstring_dict(command_dict)
 
                 #save metadata
-                self.metadata[name] = {
+                self.subcommand_metadata[name] = {
                     "name": name,
                     "module": self.modulename,
                     "package": self.packagename
@@ -336,14 +336,14 @@ class CommandDocument(Document):
         """
         report = (
             f"{command_dict['overview']} "
-            f"The help information for this command is as follows: {command_dict['help']}"
+            f"The help information for this command is as follows:\n {command_dict['help']}"
         )
         return report
 
     def __repr__(self):
         """Pretty print for instance of this class"""
         commands = []
-        for name, report in self.subcommands.items():
+        for name, report in self.subcommand_summaries.items():
             commands.append(f"* {name}:\n{report}\n")
 
         commands_text = "\n".join(commands)
@@ -351,7 +351,7 @@ class CommandDocument(Document):
         return (
             "__________________________________\n"
             f"MODULE:\n{self.modulename}\n\n"
-            f"Overview:\n{self.command_overview}\n\n"
+            f"Overview:\n{self.module_overview}\n\n"
             f"Commands:\n{commands_text}"
             "__________________________________"
         )
