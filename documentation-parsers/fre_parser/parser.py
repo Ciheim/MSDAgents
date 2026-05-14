@@ -181,7 +181,7 @@ class ModuleDocument(DocumentUtility):
             "params": self._check(params)
         }
 
-    def parse_params(self, params_docstring: str) -> list[str]|str:
+    def parse_params(self, params_docstring: str) -> list[str]:
         """
         Parses docstrings such as
         ```
@@ -195,7 +195,7 @@ class ModuleDocument(DocumentUtility):
         ```
         """
         
-        if not self._check(params_docstring): return ""
+        if not self._check(params_docstring): return []
         
         params = []
         for param_and_type_string in params_docstring.split(":param"):
@@ -214,13 +214,13 @@ class ModuleDocument(DocumentUtility):
 
         return params
     
-    def parse_raises(self, raises_docstring) -> list[str]|str:
+    def parse_raises(self, raises_docstring) -> list[str]:
         """
         Parses docstrings such as ':raises ValueError: Error if platform does not exist in platforms.yaml'
         and saves the content as 'ValueError is raised if platform does not exist in platforms.yaml.'
         """
 
-        if not self._check(raises_docstring): return ""
+        if not self._check(raises_docstring): return []
         
         raises = []
         for a_docstring in raises_docstring.split(":raises"):
