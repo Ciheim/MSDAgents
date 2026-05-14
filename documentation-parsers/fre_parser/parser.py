@@ -37,8 +37,8 @@ class DocumentUtility():
         Remove empty lines and excessive whitespace from a string.
         """
         for escape_char in ("\n", "\t", "\r", "\b", "\f", "\v", "\0"):
-            string_in = string_in.replace(escape_char, "")
-        string_in = re.sub(r' {3,}', '  ', string_in)
+            string_in = string_in.replace(escape_char, " ")
+        string_in = re.sub(r' +', ' ', string_in)
         return string_in.strip()
 
 
