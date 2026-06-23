@@ -5,10 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "msd_chatbots"
 version = "0.1.0"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 dependencies = [
     "beautifulsoup4",
-    "click",
+    "lxml",
     "langchain-core",
     "langchain-huggingface",
     "langchain-milvus",
@@ -20,4 +20,4 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["fmscoupler*", "shared*"]
+include = ["fmscoupler*", "shared*", "parsers*"]
