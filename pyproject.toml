@@ -20,4 +20,4 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["fmscoupler*", "shared*", "parsers*"]
+include = ["shared*", "parsers*"]
