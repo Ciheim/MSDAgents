@@ -12,6 +12,7 @@ class RAGChatbot:
 
     def __init__(self,
                  vectorstore: Any,
+                 codebase_description: str, 
                  temperature: float = 0,
                  model_name: str = OLLAMA_CHAT_MODEL,
                  search_hybrid = False,
@@ -19,6 +20,9 @@ class RAGChatbot:
     ):
         
         self.chatbot = ChatOllama(model=model_name, temperature=temperature)
+
+        #codebase_description
+        self.codebase_description = codebase_description
         
         # Load unified vectorstore
         self.vectorstore = vectorstore
@@ -34,11 +38,10 @@ class RAGChatbot:
         else:
             self.retrieve = retrieve_function
             
-        self.system = """
+        self.system = f"""
             ## Instructions:
-            You are a technical assistant for the FMSCoupler codebase.
-            FMSCoupler (Flexible Modeling Systems Coupler) is a program and 
-            a set of modules used in climate modeling.  Use only the supplied context to answer.
+            You are a technical assistant for the {self.codebase_description}.
+            Use only the supplied context to answer.
             If the context does not contain the answer, say you do not know.
             Else, answer with a concise explanation.  Do not use markdown formatting.
 
