@@ -39,14 +39,15 @@ class RAGChatbot:
             self.retrieve = retrieve_function
             
         self.system = f"""
-            ## Instructions:
-            You are a technical assistant for the {self.codebase_description}.
-            Use only the supplied context to answer.
-            If the context does not contain the answer, say you do not know.
-            Else, answer with a concise explanation.  Do not use markdown formatting.
+        ## Instructions:
+        You are a technical assistant for the {self.codebase_description}.
+        """ + """
+        Use only the supplied context to answer.
+        If the context does not contain the answer, say you do not know.
+        Else, answer with a concise explanation.  Do not use markdown formatting.
 
-            ## Context: 
-            {context}
+        ## Context: 
+        {context}
         """
 
         self.prompt = ChatPromptTemplate.from_messages(

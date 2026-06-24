@@ -107,7 +107,7 @@ def parse_doc(filepath: Path) -> tuple[list[Document], list[str]]:
                         name=name,
                         parent=make_id([source, h2]),
                         datatype="procedure",
-                        ichunk=0 if not add_chunk else ichunk
+                        ichunk=ichunk if add_chunk else 0
                     )
                     documents.append(Document(page_content=chunk.strip(), metadata=metadata.model_dump()))
                     ids.append(name)

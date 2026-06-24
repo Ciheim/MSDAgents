@@ -214,11 +214,13 @@ def test_collection(
             if token_count > MAX_TOKEN_LENGTH:
                 print(f"WARNING: '{result.get('name','?')}' exceeds max token length "
                       f"({token_count} > {MAX_TOKEN_LENGTH}).")
-            log.info(f"name   : {result.get('name') or result.get('source', 'unknown')}")
-            log.info(f"tokens : {token_count}")
-            log.info(f"source : {result.get('source', '')}")
-            log.info(f"parent : {result.get('parent', '')}")
-            log.info(f"ichunk : {result.get('ichunk', '')}")
+            log.info(f"name     : {result.get('name') or result.get('source', 'unknown')}")
+            log.info(f"tokens   : {token_count}")
+            log.info(f"source   : {result.get('source', '')}")
+            log.info(f"parent   : {result.get('parent', '')}")
+            log.info(f"datatype : {result.get('datatype', '')}")
+            log.info(f"name     : {result.get('name', '')}")
+            log.info(f"ichunk   : {result.get('ichunk', '')}")
             log.info(text_content)
             log.info("***\n")
 
