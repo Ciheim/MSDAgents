@@ -190,26 +190,39 @@ def test_collection(
         collection_name=collection_name,
     )
     
-    # Retrieve all documents from the collection using raw query
+    # Retrieve all documents from the collection using a query iterator
+    # (avoids the query() row cap and loading everything into memory at once)
     vs.col.load()
-    all_docs = vs.col.query(expr="", output_fields=["*"])
-    
+    pk_field = vs.col.schema.primary_field.name
+    iterator = vs.col.query_iterator(
+        expr=f'{pk_field} != ""',
+        output_fields=["*"],
+        batch_size=1000,
+    )
     log.info(f"Collection : {collection_name}")
-    log.info(f"Total documents: {len(all_docs)}\n***")
 
-    for result in all_docs:
-        text_content = result.get("text", "")
-        token_count = len(tokenizer.encode(text_content))
-        if token_count > MAX_TOKEN_LENGTH:
-            print(f"WARNING: '{result.get('name','?')}' exceeds max token length "
-                  f"({token_count} > {MAX_TOKEN_LENGTH}).")
-        log.info(f"name   : {result.get('name') or result.get('source', 'unknown')}")
-        log.info(f"tokens : {token_count}")
-        log.info(f"source : {result.get('source', '')}")
-        log.info(f"parent : {result.get('parent', '')}")
-        log.info(f"ichunk : {result.get('ichunk', '')}")
-        log.info(text_content)
-        log.info("***\n")
+    doc_count = 0
+    while True:
+        batch = iterator.next()
+        if not batch:
+            iterator.close()
+            break
+        for result in batch:
+            doc_count += 1
+            text_content = result.get("text", "")
+            token_count = len(tokenizer.encode(text_content))
+            if token_count > MAX_TOKEN_LENGTH:
+                print(f"WARNING: '{result.get('name','?')}' exceeds max token length "
+                      f"({token_count} > {MAX_TOKEN_LENGTH}).")
+            log.info(f"name   : {result.get('name') or result.get('source', 'unknown')}")
+            log.info(f"tokens : {token_count}")
+            log.info(f"source : {result.get('source', '')}")
+            log.info(f"parent : {result.get('parent', '')}")
+            log.info(f"ichunk : {result.get('ichunk', '')}")
+            log.info(text_content)
+            log.info("***\n")
+
+    log.info(f"Total documents: {doc_count}")
 
     print("\n" + "=" * 72)
     print(f"\n[done] Full log written to: {log_file}")
