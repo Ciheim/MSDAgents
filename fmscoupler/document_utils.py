@@ -40,27 +40,58 @@ tokenizer = dense_ef._client.tokenizer
 MAX_TOKEN_LENGTH = tokenizer.model_max_length
 
 # ---------------------------------------------------------------------------
-# Markdown splitters
+# Markdown splitters and chunkers
 # ---------------------------------------------------------------------------
 
-# h1/h2/h3 — used by the narrative docs parser
-h123_splitter = MarkdownHeaderTextSplitter(
-    headers_to_split_on=[("#", "h1"), ("##", "h2"), ("###", "h3")],
-    strip_headers=True,
-    return_each_line=False,
-)
+splitters = {
+    # h1/h2/h3 — used by the readme parser
+    "readme": MarkdownHeaderTextSplitter(
+        headers_to_split_on=[("#", "h1"), ("##", "h2"), ("###", "h3")],
+        strip_headers=True,
+        return_each_line=False,
+    ),
+    # h1/h2 — first pass of the code-module parser
+    "module": MarkdownHeaderTextSplitter(
+        headers_to_split_on=[("#", "h1"), ("##", "h2")],
+        strip_headers=True,
+        return_each_line=False,
+    ),
+    # h3 — second pass of the code-module parser
+    "subroutine": MarkdownHeaderTextSplitter(
+        headers_to_split_on=[("###", "h3")],
+        strip_headers=True,
+        return_each_line=False,
+    ),
+}
 
-# h1/h2 and h3 — used by the code-module parser (two-pass)
-h12_splitter = MarkdownHeaderTextSplitter(
-    headers_to_split_on=[("#", "h1"), ("##", "h2")],
-    strip_headers=True,
-    return_each_line=False,
-)
-h3_splitter = MarkdownHeaderTextSplitter(
-    headers_to_split_on=[("###", "h3")],
-    strip_headers=True,
-    return_each_line=False,
-)
+chunkers = {
+    "flowchart": RecursiveCharacterTextSplitter(
+        separators=[r"(?=Step \d+:)"],
+        chunk_size=MAX_TOKEN_LENGTH * 3,
+        chunk_overlap=0,
+        is_separator_regex=True,
+    ),
+    "arguments": RecursiveCharacterTextSplitter(
+        separators=["\n"],
+        chunk_size=MAX_TOKEN_LENGTH * 3,
+        chunk_overlap=0,
+    ),
+    "intro": RecursiveCharacterTextSplitter(
+        separators=["\n\n", "\n", ". "],
+        chunk_size=MAX_TOKEN_LENGTH * 3,
+        chunk_overlap=CHUNK_OVERLAP,
+    ),
+    "description": RecursiveCharacterTextSplitter(
+        separators=["\n\n", "\n", ". "],
+        chunk_size=MAX_TOKEN_LENGTH * 3,
+        chunk_overlap=CHUNK_OVERLAP,
+    ),
+    "misc": RecursiveCharacterTextSplitter(
+        separators=["\n\n", "\n", ". "],
+        chunk_size=MAX_TOKEN_LENGTH * 3,
+        chunk_overlap=CHUNK_OVERLAP,
+    )
+}
 
 # ---------------------------------------------------------------------------
 # ID 
@@ -68,7 +99,7 @@ h3_splitter = MarkdownHeaderTextSplitter(
 
 def make_id(idstrings) -> str:
     """Build a hierarchical chunk ID: h1/h2/h3 (omits missing levels)."""
-    return "/".join(a_id for a_id in idstrings)
+    return "/".join(a_id for a_id in idstrings if a_id)
 
 # ---------------------------------------------------------------------------
 # Chunk helper

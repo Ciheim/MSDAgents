@@ -14,11 +14,10 @@ Requires Milvus standalone on localhost:19530.
 from pathlib import Path
 
 from langchain_core.documents import Document
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from document_utils import (
-    dense_ef, tokenizer, MAX_TOKEN_LENGTH, CHUNK_OVERLAP,
-    h12_splitter, h3_splitter, make_id, create_milvus_database,
+    chunkers, splitters, dense_ef, tokenizer, MAX_TOKEN_LENGTH, CHUNK_OVERLAP,
+    make_id, create_milvus_database,
     HUGGINGFACE_MODEL, MILVUS_HOST, MILVUS_PORT,
 )
 
@@ -44,31 +43,6 @@ XMLFILES = {
     "full_coupler_mod": "namespacefull__coupler__mod.xml",
     "ice_ocean_flux_exchange_mod": "namespaceice__ocean__flux__exchange__mod.xml",
     "land_ice_flux_exchange_mod": "namespaceland__ice__flux__exchange__mod.xml",
-}
-
-# Text splitters keyed by h3 subsection type (used in add_chunk)
-SUBSECTION_SPLITTERS = {
-    "flowchart": RecursiveCharacterTextSplitter(
-        separators=[r"(?=Step \d+:)"],
-        chunk_size=MAX_TOKEN_LENGTH * 3,
-        chunk_overlap=0,
-        is_separator_regex=True,
-    ),
-    "arguments": RecursiveCharacterTextSplitter(
-        separators=["\n"],
-        chunk_size=MAX_TOKEN_LENGTH * 3,
-        chunk_overlap=0,
-    ),
-    "intro": RecursiveCharacterTextSplitter(
-        separators=["\n\n", "\n", ". "],
-        chunk_size=MAX_TOKEN_LENGTH * 3,
-        chunk_overlap=CHUNK_OVERLAP,
-    ),
-    "description": RecursiveCharacterTextSplitter(
-        separators=["\n\n", "\n", ". "],
-        chunk_size=MAX_TOKEN_LENGTH * 3,
-        chunk_overlap=CHUNK_OVERLAP,
-    )
 }
 
 def xml_to_markdown() -> list[str]:
@@ -102,40 +76,39 @@ def parse_doc(filepath: Path) -> tuple[list[Document], list[str]]:
     documents: list[Document] = []
     ids: list[str] = []
 
-    for section in h12_splitter.split_text(filepath.read_text(encoding="utf-8")):
-        h1 = section.metadata.get("h1", "") #module name
-        h2 = section.metadata.get("h2", "") #variable, subroutine::subroutine_name, function::function_name
+    for section in splitters["module"].split_text(filepath.read_text(encoding="utf-8")):
+        source = section.metadata.get("h1", "") #module name
+        h2 = section.metadata.get("h2", "") #variable, subroutine_name, or function_name
         content = section.page_content.strip()
-
-        section_id = "/".join(p for p in [h1, h2] if p)
 
         if "variable" in h2:
             # each variable is a document
-            for ivar in content.splitlines():                
-                name = make_id([h1, h2, ivar.strip()])
+            for ivar in content.splitlines():
+                name = make_id([source, ivar.strip()])                
                 metadata = ChunkMetadata(
-                    source=h1, 
+                    source=source, 
                     name=name,
-                    parent=h1, 
+                    parent=source, 
                     datatype="variable"
                 )
                 documents.append(Document(page_content=ivar.strip(), metadata=metadata.model_dump()))
                 ids.append(name)
 
         elif "subroutine" in h2 or "function" in h2:
-            # Procedure block — h3 section is either "flowchart", "arguments", "intro", or "description"
-            for subsection in h3_splitter.split_text(content):
-                h3 = subsection.metadata.get("h3")
-                splitter = SUBSECTION_SPLITTERS.get(h3, SUBSECTION_SPLITTERS["description"])
-                splitted_content = splitter.split_text(subsection.page_content)
+            # h3 section is either "flowchart", "arguments", "intro", or "description"
+            for subsection in splitters["subroutine"].split_text(content):
+                subsectiontype = subsection.metadata.get("h3")
+                splitted_content = chunkers.get(subsectiontype).split_text(subsection.page_content)
+                add_chunk = False if len(splitted_content) == 1 else True
+                name = make_id([source, h2, subsectiontype])
                 for ichunk, chunk in enumerate(splitted_content, start=1):
-                    name = make_id([h1, h2, h3, f"chunk{ichunk}"])
+                    name = make_id([name, f"chunk{ichunk}"]) if add_chunk else name
                     metadata = ChunkMetadata(
-                        source=h1,
+                        source=source,
                         name=name,
-                        parent=section_id,
+                        parent=make_id([source, h2]),
                         datatype="procedure",
-                        ichunk=ichunk
+                        ichunk=0 if not add_chunk else ichunk
                     )
                     documents.append(Document(page_content=chunk.strip(), metadata=metadata.model_dump()))
                     ids.append(name)
@@ -146,7 +119,7 @@ def parse_doc(filepath: Path) -> tuple[list[Document], list[str]]:
 # Build
 # ---------------------------------------------------------------------------
 
-def build(code_mods_dir: Path|str, create_database: bool = False) -> tuple[list[Document], list[str]] | None:
+def build(code_mods_dir: Path|str, create_database: bool = False, cleanup: bool = True) -> tuple[list[Document], list[str]] | None:
     """Parse all code-module .md files."""
 
     filepaths = xml_to_markdown()  # Convert XML to Markdown files
@@ -164,6 +137,10 @@ def build(code_mods_dir: Path|str, create_database: bool = False) -> tuple[list[
         print(f"  {filepath.name:<45}  {len(docs):>3} documents")
 
     print(f"\nTotal: {len(all_documents)} documents")
+    
+    if cleanup:
+        for filepath in filepaths:
+            filepath.unlink()  # Remove the generated Markdown files
     
     if create_database:
         create_milvus_database(all_documents, all_ids, COLLECTION_NAME)

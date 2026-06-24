@@ -9,8 +9,8 @@ from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from document_utils import (
-    dense_ef, tokenizer, MAX_TOKEN_LENGTH, CHUNK_OVERLAP,
-    h123_splitter, make_id, create_milvus_database)
+    chunkers, splitters, dense_ef, tokenizer, MAX_TOKEN_LENGTH, CHUNK_OVERLAP,
+    make_id, create_milvus_database)
 
 from shared.metadata import ChunkMetadata
 
@@ -41,15 +41,6 @@ DOC_FILES = [
     "IceOceanDriverType.md",
 ]
 
-# ---------------------------------------------------------------------------
-# Chunk splitter
-# ---------------------------------------------------------------------------
-
-splitter = RecursiveCharacterTextSplitter(
-    separators=["\n\n", "\n", ". ", " ", ""],
-    chunk_size=MAX_TOKEN_LENGTH * 3,
-    chunk_overlap=CHUNK_OVERLAP,
-)
 
 # ---------------------------------------------------------------------------
 # Parser
@@ -61,20 +52,23 @@ def parse_doc(filepath: Path) -> tuple[list[Document], list[str]]:
     documents: list[Document] = []
     ids: list[str] = []
 
-    for section in h123_splitter.split_text(filepath.read_text(encoding="utf-8")):
+    for section in splitters["readme"].split_text(filepath.read_text(encoding="utf-8")):
         content = section.page_content.strip()        
-        headers = [section.metadata.get(h, "") for h in ("h1", "h2", "h3")]       
-        name = make_id(headers)
-        splitted_content = splitter.split_text(content)
+        parent = section.metadata.get("h1")
+        name = make_id([section.metadata.get(h) for h in ("h1", "h2")])
+        if section.get_metadata("h3"):
+            name = make_id([section.metadata.get(h) for h in ("h1", "h2", "h3")])
+            parent = make_id([parent, section.metadata.get("h2")])            
+        splitted_content = chunkers["misc"].split_text(content)
         add_chunk = False if len(splitted_content) == 1 else True
         for ichunk, chunk_text in enumerate(splitted_content, start=1):
             name = f"{name}/chunk{ichunk}" if add_chunk else f"{name}"
             metadata = ChunkMetadata(
                 source=filepath.name,
                 name=name,
-                parent=name,
+                parent=parent,
                 datatype="readme",
-                ichunk=ichunk,
+                ichunk=0 if not add_chunk else ichunk,
             )
             documents.append(Document(page_content=chunk_text.strip(), metadata=metadata.model_dump()))
             ids.append(metadata.name)

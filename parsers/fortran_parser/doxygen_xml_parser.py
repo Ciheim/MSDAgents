@@ -267,7 +267,7 @@ class ModuleBodyDocument(XMLsoup):
             if detaileddescription and detaileddescription[-1] != ".":
                 detaileddescription += "."
 
-            markdown  = f"## {proctype}::{procname}\n"
+            markdown  = f"## {procname}\n"
             markdown += f"### intro\n"
             if self.append_overview:
                 markdown += f"{self.overview}  "
