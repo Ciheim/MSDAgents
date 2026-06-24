@@ -21,7 +21,7 @@ class RAGChatbot:
         
         self.chatbot = ChatOllama(model=model_name, temperature=temperature)
         
-        # Load unified vectorstore
+        # Load vectorstore
         self.vectorstore = vectorstore
 
         # Set up hybrid search if requested
@@ -53,9 +53,10 @@ class RAGChatbot:
 
         return docs_and_scores
 
+    
     def ask(self, question: str) -> tuple[str, list[tuple[Document, float]]]:
         """Invoke"""
         docs_and_scores = self.retrieve(question)
         context = "\n\n".join([doc.page_content for doc, _ in docs_and_scores])
         answer = self.answer_chain.invoke({"question": question, "context": context})
-        return answer, docs_and_scores
+        return answer, docs_and_scores, context
