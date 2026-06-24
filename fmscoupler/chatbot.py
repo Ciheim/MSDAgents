@@ -6,15 +6,26 @@ from shared.chatbot import RAGChatbot
 OLLAMA_CHAT_MODEL = "mistral-nemo:latest"
 COLLECTION_NAME = "FMSCoupler"
 
-codebase_description = """
-FMSCoupler.  FMSCoupler, Flexible Modeling Systems Coupler, is a set of program
+system_message = """
+You are a technical assistant for the FMSCoupler.  
+
+## Background
+FMSCoupler, Flexible Modeling Systems Coupler, is a set of program
 and modules to couple the atmosphere, ocean, land, and ice components in the 
 GFDL (Geophysical Fluid Dynamics Laboratory) coupled climate models.
+
+## Instructions:
+- Use only the supplied context to answer.
+- If the context does not contain the answer, say you do not know.
+- Answer with a concise explanation.  Do not use markdown formatting.
+
+## Context: 
+{context}
 """
 
 chatbot = RAGChatbot(
     vectorstore=connect_vectorstore(COLLECTION_NAME), 
-    codebase_description=codebase_description,
+    system_message=system_message,
     model_name=OLLAMA_CHAT_MODEL, 
 )
 

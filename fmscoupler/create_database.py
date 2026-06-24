@@ -71,19 +71,17 @@ if __name__ == "__main__":
     all_documents = readme_docs + code_docs
     all_ids = readme_ids + code_ids
 
-    print("checking duplicate document IDs...")
-    uniqueids = set(all_ids)
-    if len(uniqueids) != len(all_ids):
-        duplicates = [item for item, count in Counter(all_ids).items() if count > 1]        
+    print(f"Total: {len(all_documents)} documents")
+
+    print("checking duplicate document IDs...")    
+    if duplicates := [item for item, count in Counter(all_ids).items() if count > 1]:
         raise RuntimeError(f"Duplicate document IDs found: {duplicates}")
     
-    print(f"\n[chunk] Total combined: {len(all_documents)} documents")
-    print(f"[build] Creating unified Milvus collection: {COLLECTION_NAME}")
-    
     # Create the unified database
+    print("\nCreating Milvus database...")
     create_milvus_database(all_documents, all_ids, COLLECTION_NAME)
     
-    print(f"\n[test] Testing collection...")
+    print(f"\nTesting collection...")
     test_collection(COLLECTION_NAME, LOG_FILE)
     
-   
+    print("\nDatabase creation and testing completed successfully.")
