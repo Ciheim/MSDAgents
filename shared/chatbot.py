@@ -12,7 +12,7 @@ class RAGChatbot:
 
     def __init__(self,
                  vectorstore: Any,
-                 codebase_description: str, 
+                 system_message: str, 
                  temperature: float = 0,
                  model_name: str = OLLAMA_CHAT_MODEL,
                  search_hybrid = False,
@@ -20,11 +20,8 @@ class RAGChatbot:
     ):
         
         self.chatbot = ChatOllama(model=model_name, temperature=temperature)
-
-        #codebase_description
-        self.codebase_description = codebase_description
         
-        # Load unified vectorstore
+        # Load vectorstore
         self.vectorstore = vectorstore
 
         # Set up hybrid search if requested
@@ -38,19 +35,10 @@ class RAGChatbot:
         else:
             self.retrieve = retrieve_function
             
-        self.system = f"""
-            ## Instructions:
-            You are a technical assistant for the {self.codebase_description}.
-            Use only the supplied context to answer.
-            If the context does not contain the answer, say you do not know.
-            Else, answer with a concise explanation.  Do not use markdown formatting.
-
-            ## Context: 
-            {context}
-        """
+        self.system_message = system_message
 
         self.prompt = ChatPromptTemplate.from_messages(
-            [("system", self.system), ("human", "{question}")]
+            [("system", self.system_message), ("human", "{question}")]
         )
 
         self.answer_chain = self.prompt | self.chatbot | StrOutputParser()
@@ -65,9 +53,10 @@ class RAGChatbot:
 
         return docs_and_scores
 
+    
     def ask(self, question: str) -> tuple[str, list[tuple[Document, float]]]:
         """Invoke"""
         docs_and_scores = self.retrieve(question)
         context = "\n\n".join([doc.page_content for doc, _ in docs_and_scores])
         answer = self.answer_chain.invoke({"question": question, "context": context})
-        return answer, docs_and_scores
+        return answer, docs_and_scores, context
