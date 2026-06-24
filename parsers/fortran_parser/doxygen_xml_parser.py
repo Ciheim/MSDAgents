@@ -175,8 +175,8 @@ class ModuleTopLevelDocument(XMLsoup):
   
     def document_overview(self):
         
-        briefdescription = self.get_tag("briefdescription")
-        detaileddescription = self.get_tag("parblock")
+        briefdescription = self.get_tag_to_string("briefdescription")
+        detaileddescription = self.get_tag_to_string("parblock")
         
         return f"{briefdescription}  {detaileddescription}".strip()
     
@@ -232,7 +232,7 @@ class ModuleBodyDocument(XMLsoup):
         if not variables_obj:
             return "There are no module variables in this module.  "
 
-        self.variables_md.append(f"## {self.toplevel_name} variables\n")
+        self.variables_md.append(f"## variables\n")
         self.variables_md.append("| Name | Type | Definition |\n|------|------|------------|")
         for variable in variables_obj:
             varname = self.get_name(variable)
@@ -267,28 +267,28 @@ class ModuleBodyDocument(XMLsoup):
             if detaileddescription and detaileddescription[-1] != ".":
                 detaileddescription += "."
 
-            markdown  = f"## {proctype}::{procname}\n"
+            markdown  = f"## {procname}\n"
             markdown += f"### intro\n"
             if self.append_overview:
                 markdown += f"{self.overview}  "
             markdown += f"{procname} is a {proctype} in {self.toplevel_name}.\n"
             markdown += f"### description\n"
             markdown += f"{briefdescription}  {detaileddescription}\n"
-            markdown += f"### Arguments for {procname}:\n{parameters_description}\n"
+            markdown += f"### arguments\n{parameters_description}\n"
             markdown += f"### flowchart\n"
             markdown += f"{procname} does the following:  \n{inbodydescription}\n"
             self.procedures_md.append(markdown)
 
         self.mdfile.extend(self.procedures_md)
     
-    def write_markdown(self):
+    def write_markdown(self, output_dir: str|Path = "./"):
         # Keep output filename path-safe while preserving module identity.
         module_name = self.toplevel_name.replace("::", "__").replace("/", "_")
         output_file = f"{module_name}.md"
 
         markdown_content = "\n".join(str(section) for section in self.mdfile)
 
-        with open(output_file, "w", encoding="utf-8") as f:
+        with open(Path(output_dir)/output_file, "w", encoding="utf-8") as f:
             f.write(markdown_content)
 
         return output_file

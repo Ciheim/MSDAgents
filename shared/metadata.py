@@ -5,5 +5,5 @@ class ChunkMetadata(BaseModel):
     source: str
     name: str
     parent: str
-    ichunk: int = 1
+    ichunk: int = 0
     datatype: str 
