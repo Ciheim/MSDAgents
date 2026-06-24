@@ -9,7 +9,7 @@ from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from document_utils import (
-    chunkers, splitters, dense_ef, tokenizer, MAX_TOKEN_LENGTH, CHUNK_OVERLAP,
+    chunkers, splitters, dense_ef, tokenizer,
     make_id, create_milvus_database)
 
 from shared.metadata import ChunkMetadata
@@ -56,7 +56,7 @@ def parse_doc(filepath: Path) -> tuple[list[Document], list[str]]:
         content = section.page_content.strip()        
         parent = section.metadata.get("h1")
         name = make_id([section.metadata.get(h) for h in ("h1", "h2")])
-        if section.get_metadata("h3"):
+        if section.metadata.get("h3"):
             name = make_id([section.metadata.get(h) for h in ("h1", "h2", "h3")])
             parent = make_id([parent, section.metadata.get("h2")])            
         splitted_content = chunkers["misc"].split_text(content)

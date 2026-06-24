@@ -120,20 +120,24 @@ def check_chunk_length(chunk, end_in_error=False):
 # Milvus helpers
 # ---------------------------------------------------------------------------
 
+def connect_to_client(): 
+    client = MilvusClient(uri=f"http://{MILVUS_HOST}:{MILVUS_PORT}", alias="default")
+    return client
+
 def connect_vectorstore(collection_name: str) -> Milvus:
     """Return a Milvus handle attached to an existing collection."""
-    connections.connect(host=MILVUS_HOST, port=MILVUS_PORT)
+    connect_to_client()
     return Milvus(
         embedding_function=dense_ef,
         builtin_function=BM25BuiltInFunction(),
         vector_field=["dense", "sparse"],
-        connection_args={"host": MILVUS_HOST, "port": MILVUS_PORT},
+        connection_args={"host": MILVUS_HOST, "port": MILVUS_PORT, "alias": "default"},
         collection_name=collection_name,
     )
 
 def remove_collection_if_exists(collection_name: str) -> None:
     """Drop a Milvus collection if it already exists."""
-    client = MilvusClient(uri=f"http://{MILVUS_HOST}:{MILVUS_PORT}")
+    client = MilvusClient(uri=f"http://{MILVUS_HOST}:{MILVUS_PORT}", alias="default")
     if client.has_collection(collection_name):
         client.drop_collection(collection_name)
         print(f"[milvus] Dropped existing collection: {collection_name}")
@@ -144,14 +148,13 @@ def create_milvus_database(documents: list, ids: list, collection_name: str) -> 
     print(f"\n[milvus] Connecting to {MILVUS_HOST}:{MILVUS_PORT}")
     print(f"[milvus] Collection  : {collection_name}")
     print(f"[milvus] Embedding   : {HUGGINGFACE_MODEL}  ({DENSE_DIM}-dim dense + BM25 sparse)")
-    #remove_collection_if_exists(collection_name)    
     Milvus.from_documents(
         documents=documents,
         ids=ids,
         embedding=dense_ef,
         builtin_function=BM25BuiltInFunction(),
         vector_field=["dense", "sparse"],
-        connection_args={"host": MILVUS_HOST, "port": MILVUS_PORT},
+        connection_args={"uri": f"http://{MILVUS_HOST}:{MILVUS_PORT}", "alias": "default"},
         collection_name=collection_name,
         drop_old=True,
     )
@@ -165,7 +168,6 @@ def create_milvus_database(documents: list, ids: list, collection_name: str) -> 
 
 def test_collection(
     collection_name: str,
-    tests: list[tuple[str, str | None]],
     log_file: str,
 ) -> None:
     """
@@ -184,13 +186,13 @@ def test_collection(
         embedding_function=dense_ef,
         builtin_function=BM25BuiltInFunction(),
         vector_field=["dense", "sparse"],
-        connection_args={"host": MILVUS_HOST, "port": MILVUS_PORT},
+        connection_args={"uri": f"http://{MILVUS_HOST}:{MILVUS_PORT}", "alias": "default"},
         collection_name=collection_name,
     )
     
     # Retrieve all documents from the collection using raw query
     vs.col.load()
-    all_docs = vs._collection.query(expr="", output_fields=["*"])
+    all_docs = vs.col.query(expr="", output_fields=["*"])
     
     log.info(f"Collection : {collection_name}")
     log.info(f"Total documents: {len(all_docs)}\n***")

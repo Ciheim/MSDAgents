@@ -16,9 +16,8 @@ from pathlib import Path
 from langchain_core.documents import Document
 
 from document_utils import (
-    chunkers, splitters, dense_ef, tokenizer, MAX_TOKEN_LENGTH, CHUNK_OVERLAP,
-    make_id, create_milvus_database,
-    HUGGINGFACE_MODEL, MILVUS_HOST, MILVUS_PORT,
+    chunkers, splitters, dense_ef, tokenizer,
+    make_id, create_milvus_database,    
 )
 
 from shared.metadata import ChunkMetadata

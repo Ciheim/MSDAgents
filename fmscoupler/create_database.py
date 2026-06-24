@@ -83,10 +83,7 @@ if __name__ == "__main__":
     # Create the unified database
     create_milvus_database(all_documents, all_ids, COLLECTION_NAME)
     
-    # Test the unified collection
-   # print(f"\n[test] Testing unified collection...")
-   # test_collection(COLLECTION_NAME, TESTS, LOG_FILE)
+    print(f"\n[test] Testing collection...")
+    test_collection(COLLECTION_NAME, LOG_FILE)
     
-   # print(f"\nDone. Unified collection available:")
-   # print(f"  {COLLECTION_NAME:<24}  log: {LOG_FILE}")
-
+   
