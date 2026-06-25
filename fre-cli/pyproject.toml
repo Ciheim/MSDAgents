@@ -14,7 +14,7 @@ dependencies = [
   "langchain-ollama",
   "langchain-milvus",
   "pymilvus",
-  "pymilvus[milvus_lite]"
+  "pymilvus[milvus_lite]",
   "chromadb",
   "psycopg2-binary",
   "streamlit",
