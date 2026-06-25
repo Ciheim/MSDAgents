@@ -1,4 +1,4 @@
-# GFDL Assistant - FRE make RAG Chatbot
+# GFDL Assistant - FRE-CLI Chatbot
 
 This tool is a RAG (Retrieval-Augmented Generation) chatbot designed to assist scientists and developers in navigating the GFDL FRE workflow. It runs locally using Ollama for LLM inference and embeddings.
 
