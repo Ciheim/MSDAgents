@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fre_cli_chatbot"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+  "langchain",
+  "langchain-core",
+  "langchain-community",
+  "langchain-text-splitters",
+  "langchain-ollama",
+  "langchain-milvus",
+  "pymilvus",
+  "pymilvus[milvus_lite]"
+  "chromadb",
+  "psycopg2-binary",
+  "streamlit",
+  "requests",
+  "nest-asyncio"
+]
+readme = "README.md"
+description = "FRE-CLI chatbot, based on Langchain, Ollama, and Llama 3.1"

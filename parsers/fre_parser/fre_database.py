@@ -66,10 +66,24 @@ class FreDatabase:
         "fre.run.frerun": None
     }
 
-    def __init__(self):
+    def __init__(self, module_name=None):
         """Constructor"""
-        self.tools_dict = copy.deepcopy(self.TOOLS_DICT)
-        self.commands_dict = copy.deepcopy(self.COMMANDS_DICT)
+        module_found = False
+        if module_name:
+            for mod in self.TOOLS_DICT.keys():
+                if module_name == mod:
+                    self.tools_dict = {}
+                    self.commands_dict = {}
+                    self.tools_dict[mod] = self.TOOLS_DICT[mod]
+                    self.commands_dict[f"fre.{mod}.fre{mod}"] = self.COMMANDS_DICT[f"fre.{mod}.fre{mod}"]\
+                                                                if mod != "list"\
+                                                                else self.COMMAND_DICT[f"fre.{mod}_.fre{mod}"]
+                    module_found = True
+                    break
+
+        if not module_found or not module_name:
+            self.tools_dict = copy.deepcopy(self.TOOLS_DICT)
+            self.commands_dict = copy.deepcopy(self.COMMANDS_DICT)
 
     def summarize(self):
         """Summarizes the docstrings in the modules and commands"""
@@ -90,7 +104,7 @@ class FreDatabase:
                 self.commands_dict[command] = commanddocument
             except Exception as exc:
                 print(f"Skipping command group {command}: {exc}")
-        
+
     def to_chromadb(self):
         """Converts the summarized data into document_list, metadata_list, and id_list for ChromaDB"""
         

@@ -1,1 +1,4 @@
-documentation-parsers/fre-parser/__pycache__/
+__pycache__/
+venv/
+gfdl_fre_vectors.db/
+gfdl_fre_chatbot_analytics.db
