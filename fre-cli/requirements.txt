@@ -1,0 +1,13 @@
+langchain
+langchain-core
+langchain-community
+langchain-text-splitters
+langchain-ollama
+langchain-milvus
+pymilvus
+pymilvus[milvus_lite]
+chromadb
+psycopg2-binary
+streamlit
+requests
+nest-asyncio
