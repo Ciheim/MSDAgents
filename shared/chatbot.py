@@ -54,7 +54,7 @@ class RAGChatbot:
         return docs_and_scores
 
     
-    def ask(self, question: str) -> tuple[str, list[tuple[Document, float]]]:
+    def ask(self, question: str) -> tuple[str, list[tuple[Document, float]], str]:
         """Invoke"""
         docs_and_scores = self.retrieve(question)
         context = "\n\n".join([doc.page_content for doc, _ in docs_and_scores])

@@ -186,11 +186,13 @@ class ModuleBodyDocument(XMLsoup):
     def __init__(self,
                  xmldir: str|Path = "./docs/xml",
                  xmlfile: str|Path = None,
-                 append_overview: bool = True):
+                 append_overview: bool = True,
+                 include_flowchart: bool = True):
 
         super().__init__(xmldir, xmlfile=xmlfile)
         self.bodyxmlfile = xmlfile
         self.append_overview = append_overview
+        self.include_flowchart = include_flowchart
         self.overview = ""
         self.variables_md = []
         self.procedures_md = []
@@ -260,7 +262,7 @@ class ModuleBodyDocument(XMLsoup):
             parameters_description = self.get_parameters_description(procedure, subroutine_name=procname)
             briefdescription = self.get_tag_to_string("briefdescription", procedure)
             detaileddescription = self.get_tag_to_string("parblock", procedure)            
-            inbodydescription = self.get_inbodydescription(procedure)
+            inbodydescription = self.get_inbodydescription(procedure) if self.include_flowchart else ""
 
             if briefdescription and briefdescription[-1] != ".":
                 briefdescription += "."
@@ -275,8 +277,9 @@ class ModuleBodyDocument(XMLsoup):
             markdown += f"### description\n"
             markdown += f"{briefdescription}  {detaileddescription}\n"
             markdown += f"### arguments\n{parameters_description}\n"
-            markdown += f"### flowchart\n"
-            markdown += f"{procname} does the following:  \n{inbodydescription}\n"
+            if self.include_flowchart:
+                markdown += f"### flowchart\n"
+                markdown += f"{procname} does the following:  \n{inbodydescription}\n"
             self.procedures_md.append(markdown)
 
         self.mdfile.extend(self.procedures_md)
