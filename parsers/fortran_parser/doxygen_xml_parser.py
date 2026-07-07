@@ -74,6 +74,25 @@ class XMLsoup():
             
         return ""
 
+    def get_direct_tag_to_string(self, tag, soup = None):
+
+        """
+        Returns the text of a direct child tag without descending into nested
+        members that may contain same-named tags earlier in the document.
+        """
+
+        if soup is None:
+            soup = self.soup
+
+        tagobj = soup.find(tag, recursive=False)
+
+        if tagobj is not None:
+            tagstr = tagobj.text.strip()
+            if tagstr:
+                return tagstr
+
+        return ""
+
 
     def get_parameters_description(self, soup = None, subroutine_name = None):
 
@@ -288,6 +307,80 @@ class ModuleBodyDocument(XMLsoup):
         # Keep output filename path-safe while preserving module identity.
         module_name = self.toplevel_name.replace("::", "__").replace("/", "_")
         output_file = f"{module_name}.md"
+
+        markdown_content = "\n".join(str(section) for section in self.mdfile)
+
+        with open(Path(output_dir)/output_file, "w", encoding="utf-8") as f:
+            f.write(markdown_content)
+
+        return output_file
+
+
+class InterfaceDocument(XMLsoup):
+
+    def __init__(self,
+                 xmldir: str|Path = "./docs/xml",
+                 xmlfile: str|Path = None,
+                 include_flowchart: bool = True):
+
+        super().__init__(xmldir, xmlfile=xmlfile)
+        self.include_flowchart = include_flowchart
+        self.interface_name = self.toplevel_name
+        name_parts = self.interface_name.split("::", 1)
+        self.module_name = name_parts[0] if len(name_parts) == 2 else ""
+        self.generic_name = name_parts[1] if len(name_parts) == 2 else self.interface_name
+        self.mdfile = [f"# {self.interface_name}\n"]
+
+    def document_interface(self):
+        compounddef = self.soup.find("compounddef")
+        briefdescription = self.get_direct_tag_to_string("briefdescription", compounddef)
+        detaileddescription = self.get_direct_tag_to_string("detaileddescription", compounddef)
+
+        if briefdescription and briefdescription[-1] != ".":
+            briefdescription += "."
+        if detaileddescription and detaileddescription[-1] != ".":
+            detaileddescription += "."
+
+        markdown = f"## interface {self.generic_name}\n"
+        markdown += "### intro\n"
+        if self.module_name:
+            markdown += f"{self.generic_name} is a generic interface in {self.module_name}.\n"
+        else:
+            markdown += f"{self.generic_name} is a generic interface.\n"
+        markdown += "### description\n"
+        markdown += f"{briefdescription}  {detaileddescription}\n"
+
+        procedures_obj = self.soup.find_all("memberdef", {"kind": "function"})
+        if procedures_obj:
+            markdown += "### implementations\n"
+            for procedure in procedures_obj:
+                procname = self.get_name(procedure)
+                proctype = self.get_tag_to_string("type", procedure).split(",")[0].strip()
+                parameters_description = self.get_parameters_description(procedure, subroutine_name=procname)
+                proc_brief = self.get_tag_to_string("briefdescription", procedure)
+                proc_detail = self.get_tag_to_string("detaileddescription", procedure)
+                inbodydescription = self.get_inbodydescription(procedure) if self.include_flowchart else ""
+
+                if proc_brief and proc_brief[-1] != ".":
+                    proc_brief += "."
+                if proc_detail and proc_detail[-1] != ".":
+                    proc_detail += "."
+
+                markdown += f"#### {procname}\n"
+                markdown += f"{procname} is a {proctype} implementation of {self.generic_name}.\n"
+                markdown += f"{proc_brief}  {proc_detail}\n"
+                if parameters_description:
+                    markdown += f"{parameters_description}\n"
+                if self.include_flowchart and inbodydescription:
+                    markdown += "##### flowchart\n"
+                    markdown += f"{procname} does the following:  \n{inbodydescription}\n"
+
+        self.mdfile.append(markdown)
+        return markdown
+
+    def write_markdown(self, output_dir: str|Path = "./"):
+        interface_name = self.interface_name.replace("::", "__").replace("/", "_")
+        output_file = f"{interface_name}.md"
 
         markdown_content = "\n".join(str(section) for section in self.mdfile)
 

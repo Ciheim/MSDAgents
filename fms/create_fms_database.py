@@ -18,6 +18,7 @@ if parser_spec is None or parser_spec.loader is None:
 parser_module = importlib.util.module_from_spec(parser_spec)
 parser_spec.loader.exec_module(parser_module)
 ModuleBodyDocument = parser_module.ModuleBodyDocument
+InterfaceDocument = parser_module.InterfaceDocument
 
 
 def parse_xml_directory(
@@ -41,6 +42,23 @@ def parse_xml_directory(
 
         try:
             parsed = _parse_single_module(
+                xml_dir=xml_dir,
+                xml_name=xml_name,
+                markdown_dir=markdown_dir,
+                include_flowchart=include_flowchart,
+            )
+        except Exception as exc:
+            print(f"Skipping {xml_name}: {exc}")
+            continue
+        docs.extend(parsed)
+
+    for xml_file in xml_files:
+        xml_name = xml_file.name
+        if not xml_name.startswith("interface"):
+            continue
+
+        try:
+            parsed = _parse_single_interface(
                 xml_dir=xml_dir,
                 xml_name=xml_name,
                 markdown_dir=markdown_dir,
@@ -141,6 +159,83 @@ def _parse_single_module(
     return out_docs
 
 
+def _parse_single_interface(
+    xml_dir: Path,
+    xml_name: str,
+    markdown_dir: Path,
+    include_flowchart: bool,
+) -> list[Document]:
+    """Parse one interface XML file and associate it with its owning module."""
+    interface_doc = InterfaceDocument(
+        xmldir=xml_dir,
+        xmlfile=xml_name,
+        include_flowchart=include_flowchart,
+    )
+    interface_markdown = interface_doc.document_interface()
+
+    markdown_dir.mkdir(parents=True, exist_ok=True)
+    original_cwd = Path.cwd()
+    try:
+        os.chdir(markdown_dir)
+        markdown_file = interface_doc.write_markdown()
+    finally:
+        os.chdir(original_cwd)
+
+    metadata = {
+        "source": interface_doc.module_name or interface_doc.interface_name,
+        "name": interface_doc.generic_name,
+        "kind": "interface",
+        "xml_file": xml_name,
+        "markdown_file": markdown_file,
+    }
+
+    docs = [
+        Document(
+            page_content=interface_markdown,
+            metadata=metadata,
+        )
+    ]
+
+    for procedure in interface_doc.soup.find_all("memberdef", {"kind": "function"}):
+        procedure_name = interface_doc.get_name(procedure)
+        procedure_type = interface_doc.get_tag_to_string("type", procedure).split(",")[0].strip()
+        parameters_description = interface_doc.get_parameters_description(
+            procedure,
+            subroutine_name=procedure_name,
+        )
+        briefdescription = interface_doc.get_tag_to_string("briefdescription", procedure)
+        detaileddescription = interface_doc.get_tag_to_string("detaileddescription", procedure)
+
+        if briefdescription and briefdescription[-1] != ".":
+            briefdescription += "."
+        if detaileddescription and detaileddescription[-1] != ".":
+            detaileddescription += "."
+
+        procedure_markdown = (
+            f"## {procedure_name}\n"
+            f"### intro\n"
+            f"{procedure_name} is a {procedure_type} implementation of the "
+            f"{interface_doc.generic_name} interface in {metadata['source']}.\n"
+            f"### description\n"
+            f"{briefdescription}  {detaileddescription}\n"
+            f"### arguments\n{parameters_description}\n"
+        )
+
+        docs.append(
+            Document(
+                page_content=procedure_markdown,
+                metadata={
+                    **metadata,
+                    "name": procedure_name,
+                    "interface_name": interface_doc.generic_name,
+                    "kind": "interface_procedure",
+                },
+            )
+        )
+
+    return docs
+
+
 def ensure_collection(client: MilvusClient, collection_name: str, recreate: bool) -> None:
     """Create collection if missing, or recreate if requested."""
     exists = client.has_collection(collection_name=collection_name)
@@ -157,6 +252,7 @@ def ensure_collection(client: MilvusClient, collection_name: str, recreate: bool
         schema.add_field(field_name="kind", datatype=DataType.VARCHAR, max_length=128)
         schema.add_field(field_name="xml_file", datatype=DataType.VARCHAR, max_length=1024)
         schema.add_field(field_name="markdown_file", datatype=DataType.VARCHAR, max_length=1024)
+        schema.add_field(field_name="interface_name", datatype=DataType.VARCHAR, max_length=1024)
         schema.add_field(field_name="embedding", datatype=DataType.FLOAT_VECTOR, dim=2)
 
         client.create_collection(collection_name=collection_name, schema=schema)
@@ -189,6 +285,7 @@ def ingest_documents(
                     "kind": str(metadata.get("kind", "")),
                     "xml_file": str(metadata.get("xml_file", "")),
                     "markdown_file": str(metadata.get("markdown_file", "")),
+                    "interface_name": str(metadata.get("interface_name", "")),
                     "embedding": default_embedding,
                 }
             )
