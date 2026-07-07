@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Iterable
 
 from langchain_core.documents import Document
+from langchain_huggingface import HuggingFaceEmbeddings
 from pymilvus import DataType, MilvusClient
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +20,9 @@ parser_module = importlib.util.module_from_spec(parser_spec)
 parser_spec.loader.exec_module(parser_module)
 ModuleBodyDocument = parser_module.ModuleBodyDocument
 InterfaceDocument = parser_module.InterfaceDocument
+
+# TODO consider using a GPU-enabled model for embeddings, hits cuda version mismatches on amd
+EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 
 
 def parse_xml_directory(
@@ -236,7 +240,12 @@ def _parse_single_interface(
     return docs
 
 
-def ensure_collection(client: MilvusClient, collection_name: str, recreate: bool) -> None:
+def ensure_collection(
+    client: MilvusClient,
+    collection_name: str,
+    recreate: bool,
+    vector_dim: int,
+) -> None:
     """Create collection if missing, or recreate if requested."""
     exists = client.has_collection(collection_name=collection_name)
     if exists and recreate:
@@ -253,7 +262,7 @@ def ensure_collection(client: MilvusClient, collection_name: str, recreate: bool
         schema.add_field(field_name="xml_file", datatype=DataType.VARCHAR, max_length=1024)
         schema.add_field(field_name="markdown_file", datatype=DataType.VARCHAR, max_length=1024)
         schema.add_field(field_name="interface_name", datatype=DataType.VARCHAR, max_length=1024)
-        schema.add_field(field_name="embedding", datatype=DataType.FLOAT_VECTOR, dim=2)
+        schema.add_field(field_name="embedding", datatype=DataType.FLOAT_VECTOR, dim=vector_dim)
 
         client.create_collection(collection_name=collection_name, schema=schema)
 
@@ -268,14 +277,17 @@ def ingest_documents(
     collection_name: str,
     documents: list[Document],
     batch_size: int,
+    embeddings: HuggingFaceEmbeddings,
 ) -> int:
     """Insert parsed documents into Milvus."""
     inserted = 0
-    default_embedding = [0.0, 0.0]
 
     for chunk in batch_chunks(documents, batch_size):
+        chunk_texts = [doc.page_content for doc in chunk]
+        chunk_embeddings = embeddings.embed_documents(chunk_texts)
+
         rows: list[dict[str, object]] = []
-        for doc in chunk:
+        for doc, embedding in zip(chunk, chunk_embeddings):
             metadata = dict(doc.metadata)
             rows.append(
                 {
@@ -286,7 +298,7 @@ def ingest_documents(
                     "xml_file": str(metadata.get("xml_file", "")),
                     "markdown_file": str(metadata.get("markdown_file", "")),
                     "interface_name": str(metadata.get("interface_name", "")),
-                    "embedding": default_embedding,
+                    "embedding": embedding,
                 }
             )
 
@@ -323,14 +335,22 @@ def main() -> int:
         markdown_dir=markdown_export_dir,
         include_flowchart=include_flowchart,
     )
+
     if not docs:
         print("No parseable module XML files found (expected namespace*__mod.xml files).")
         return 1
 
+    embeddings = HuggingFaceEmbeddings(
+        model_name=EMBEDDING_MODEL,
+        model_kwargs={"device": "cpu"},
+        encode_kwargs={"normalize_embeddings": True},
+    )
+    vector_dim = len(embeddings.embed_query("vector dimension probe"))
+
     client = connect_client(milvus_db_path)
     try:
-        ensure_collection(client, collection_name, recreate_collection)
-        inserted = ingest_documents(client, collection_name, docs, batch_size)
+        ensure_collection(client, collection_name, recreate_collection, vector_dim)
+        inserted = ingest_documents(client, collection_name, docs, batch_size, embeddings)
     finally:
         if hasattr(client, "close"):
             client.close()

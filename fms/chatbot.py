@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from langchain_core.documents import Document
+from langchain_huggingface import HuggingFaceEmbeddings
 from pymilvus import MilvusClient
 
 from shared.chatbot import RAGChatbot
@@ -56,12 +57,31 @@ def _keyword_score(query: str, record: dict[str, Any]) -> int:
   return sum(searchable.count(token) for token in tokens)
 
 
-def retrieve_documents(
+def _record_to_document(props: dict[str, Any]) -> Document:
+  return Document(
+    page_content=(
+      f"name: {props.get('name', '')}\n"
+      f"kind: {props.get('kind', '')}\n"
+      f"source: {props.get('source', '')}\n"
+      f"xml_file: {props.get('xml_file', '')}\n"
+      f"markdown_file: {props.get('markdown_file', '')}\n"
+      f"text: {props.get('text', '')}"
+    ),
+    metadata={
+      "name": str(props.get("name", "")),
+      "kind": str(props.get("kind", "")),
+      "source": str(props.get("source", "")),
+      "xml_file": str(props.get("xml_file", "")),
+      "markdown_file": str(props.get("markdown_file", "")),
+    },
+  )
+
+
+def _keyword_retrieve(
   client: MilvusClient,
   query: str,
-  limit: int = TOP_K,
+  limit: int,
 ) -> list[tuple[Document, float]]:
-  """Retrieve matching docs from Milvus and return scored Documents."""
   try:
     candidates = client.query(
       collection_name=COLLECTION_NAME,
@@ -75,12 +95,6 @@ def retrieve_documents(
       output_fields=["text", "name", "source", "kind", "xml_file", "markdown_file"],
       limit=MAX_CANDIDATES,
     )
-  except Exception as exc:
-    error_doc = Document(
-      page_content=f"Failed to query Milvus collection '{COLLECTION_NAME}': {exc}",
-      metadata={"source": "milvus", "name": "query_error", "kind": "error"},
-    )
-    return [(error_doc, 0.0)]
 
   scored_rows = [(_keyword_score(query, row), row) for row in candidates]
   scored_rows.sort(key=lambda item: item[0], reverse=True)
@@ -88,29 +102,83 @@ def retrieve_documents(
   if not selected_rows:
     selected_rows = scored_rows[:limit]
 
-  docs_and_scores: list[tuple[Document, float]] = []
-  for score, props in selected_rows:
-    doc = Document(
-      page_content=(
-        f"name: {props.get('name', '')}\n"
-        f"kind: {props.get('kind', '')}\n"
-        f"source: {props.get('source', '')}\n"
-        f"xml_file: {props.get('xml_file', '')}\n"
-        f"markdown_file: {props.get('markdown_file', '')}\n"
-        f"text: {props.get('text', '')}"
-      ),
-      metadata={
-        "name": str(props.get("name", "")),
-        "kind": str(props.get("kind", "")),
-        "source": str(props.get("source", "")),
-        "xml_file": str(props.get("xml_file", "")),
-        "markdown_file": str(props.get("markdown_file", "")),
-      },
+  return [(_record_to_document(props), float(score)) for score, props in selected_rows]
+
+
+def retrieve_documents(
+  client: MilvusClient,
+  embeddings: HuggingFaceEmbeddings,
+  query: str,
+  limit: int = TOP_K,
+) -> list[tuple[Document, float]]:
+  """Retrieve matching docs from Milvus vector search with keyword fallback."""
+  try:
+    query_vector = embeddings.embed_query(query)
+    search_results = client.search(
+      collection_name=COLLECTION_NAME,
+      data=[query_vector],
+      anns_field="embedding",
+      output_fields=["text", "name", "source", "kind", "xml_file", "markdown_file"],
+      limit=limit,
     )
-    docs_and_scores.append((doc, float(score)))
+  except TypeError:
+    # Some client versions vary in search argument names.
+    search_results = client.search(
+      collection_name=COLLECTION_NAME,
+      data=[query_vector],
+      output_fields=["text", "name", "source", "kind", "xml_file", "markdown_file"],
+      limit=limit,
+    )
+  except Exception as exc:
+    try:
+      docs_and_scores = _keyword_retrieve(client, query, limit)
+    except Exception:
+      error_doc = Document(
+        page_content=f"Failed to query Milvus collection '{COLLECTION_NAME}': {exc}",
+        metadata={"source": "milvus", "name": "query_error", "kind": "error"},
+      )
+      return [(error_doc, 0.0)]
+    else:
+      return docs_and_scores
+
+  first = search_results[0] if search_results else []
+  hits = first if isinstance(first, list) else search_results
+
+  docs_and_scores: list[tuple[Document, float]] = []
+  for hit in hits:
+    props: dict[str, Any] = {}
+    distance = 0.0
+
+    if isinstance(hit, dict):
+      entity = hit.get("entity")
+      if isinstance(entity, dict):
+        props = entity
+      else:
+        props = {
+          "text": hit.get("text", ""),
+          "name": hit.get("name", ""),
+          "source": hit.get("source", ""),
+          "kind": hit.get("kind", ""),
+          "xml_file": hit.get("xml_file", ""),
+          "markdown_file": hit.get("markdown_file", ""),
+        }
+      distance = float(hit.get("distance", hit.get("score", 0.0)) or 0.0)
+
+    if not props:
+      continue
+
+    similarity = 1.0 / (1.0 + max(distance, 0.0))
+    docs_and_scores.append((_record_to_document(props), similarity))
 
   if docs_and_scores:
     return docs_and_scores
+
+  try:
+    docs_and_scores = _keyword_retrieve(client, query, limit)
+    if docs_and_scores:
+      return docs_and_scores
+  except Exception:
+    pass
 
   fallback_doc = Document(
     page_content="No relevant context was found in the FMS Milvus collection.",
@@ -128,12 +196,19 @@ def main() -> None:
         f"Collection '{COLLECTION_NAME}' not found. Run create_fms_database.py first."
       )
 
+    embeddings = HuggingFaceEmbeddings(
+      model_name=EMBEDDING_MODEL,
+      model_kwargs={"device": "cpu"},
+      encode_kwargs={"normalize_embeddings": True},
+    )
+
     chatbot = RAGChatbot(
       vectorstore=None,
       system_message=SYSTEM_MESSAGE,
       model_name=LLM_MODEL,
-      retrieve_function=lambda question: retrieve_documents(client, question),
+      retrieve_function=lambda question: retrieve_documents(client, embeddings, question),
     )
+
 
     print("FMS assistant ready. Ask a question (type 'exit' to quit).")
     print(">", end=" ")
