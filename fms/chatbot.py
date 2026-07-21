@@ -17,6 +17,7 @@ from shared.chatbot import RAGChatbot
 
 
 LLM_MODEL = "llama3.2"
+EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 MILVUS_DB_PATH = Path("/home/Ryan.Mulhall/msdagents/fms-chatbot/local_storage/fms_milvus.db")
 COLLECTION_NAME = "fms"
 TOP_K = 15
@@ -112,37 +113,18 @@ def retrieve_documents(
   limit: int = TOP_K,
 ) -> list[tuple[Document, float]]:
   """Retrieve matching docs from Milvus vector search with keyword fallback."""
-  try:
-    query_vector = embeddings.embed_query(query)
-    search_results = client.search(
-      collection_name=COLLECTION_NAME,
-      data=[query_vector],
-      anns_field="embedding",
-      output_fields=["text", "name", "source", "kind", "xml_file", "markdown_file"],
-      limit=limit,
-    )
-  except TypeError:
-    # Some client versions vary in search argument names.
-    search_results = client.search(
-      collection_name=COLLECTION_NAME,
-      data=[query_vector],
-      output_fields=["text", "name", "source", "kind", "xml_file", "markdown_file"],
-      limit=limit,
-    )
-  except Exception as exc:
-    try:
-      docs_and_scores = _keyword_retrieve(client, query, limit)
-    except Exception:
-      error_doc = Document(
-        page_content=f"Failed to query Milvus collection '{COLLECTION_NAME}': {exc}",
-        metadata={"source": "milvus", "name": "query_error", "kind": "error"},
-      )
-      return [(error_doc, 0.0)]
-    else:
-      return docs_and_scores
 
-  first = search_results[0] if search_results else []
-  hits = first if isinstance(first, list) else search_results
+  query_vector = embeddings.embed_query(query)
+  search_results = client.search(
+    collection_name=COLLECTION_NAME,
+    data=[query_vector],
+    anns_field="embedding",
+    output_fields=["text", "name", "source", "kind", "xml_file", "markdown_file"],
+    limit=limit,
+  )
+
+  first = search_results[0]
+  hits = first
 
   docs_and_scores: list[tuple[Document, float]] = []
   for hit in hits:
@@ -167,7 +149,7 @@ def retrieve_documents(
     if not props:
       continue
 
-    similarity = 1.0 / (1.0 + max(distance, 0.0))
+    similarity = distance #1.0 / (1.0 + max(distance, 0.0))
     docs_and_scores.append((_record_to_document(props), similarity))
 
   if docs_and_scores:
