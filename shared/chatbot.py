@@ -1,5 +1,8 @@
+import logging
+from datetime import datetime
 from typing import Any
 
+import yaml
 from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -7,6 +10,35 @@ from langchain_ollama import ChatOllama
 
 OLLAMA_CHAT_MODEL = "mistral-nemo:latest"
 HYBRID_LIMIT = 24
+
+logging.basicConfig(
+    filename="chatbot_log.yaml",
+    level=logging.INFO,
+    format="%(message)s",
+)
+logger = logging.getLogger("chatbot")
+
+
+def log_output(llm_model, system_prompt, user_query, response_text, retrieved_docs):
+    log_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "llm_model": llm_model,
+        "system_prompt": system_prompt,
+        "user_query": user_query,
+        "ai_response": response_text,
+        "retrieved_files": [
+            {
+                "source": doc.metadata.get("source", "unknown"),
+                "similarity_score": score,
+            }
+            for doc, score in retrieved_docs
+        ],
+    }
+
+    with open("chatbot_log.yaml", "a", encoding="utf-8") as log_file:
+        yaml.safe_dump([log_entry], log_file, sort_keys=False, allow_unicode=True)
+        log_file.write("\n")
+
 
 class RAGChatbot:
 
@@ -59,4 +91,13 @@ class RAGChatbot:
         docs_and_scores = self.retrieve(question)
         context = "\n\n".join([doc.page_content for doc, _ in docs_and_scores])
         answer = self.answer_chain.invoke({"question": question, "context": context})
+
+        log_output(
+            llm_model=self.chatbot.model,
+            system_prompt=self.system_message,
+            user_query=question,
+            response_text=answer,
+            retrieved_docs=docs_and_scores,
+        )
+
         return answer, docs_and_scores, context
