@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Iterable
 
 from langchain_core.documents import Document
+from langchain_huggingface import HuggingFaceEmbeddings
 from pymilvus import DataType, MilvusClient
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
@@ -18,9 +19,17 @@ if parser_spec is None or parser_spec.loader is None:
 parser_module = importlib.util.module_from_spec(parser_spec)
 parser_spec.loader.exec_module(parser_module)
 ModuleBodyDocument = parser_module.ModuleBodyDocument
+InterfaceDocument = parser_module.InterfaceDocument
+
+# TODO consider using a GPU-enabled model for embeddings, hits cuda version mismatches on amd
+EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 
 
-def parse_xml_directory(xml_dir: Path, markdown_dir: Path) -> list[Document]:
+def parse_xml_directory(
+    xml_dir: Path,
+    markdown_dir: Path,
+    include_flowchart: bool,
+) -> list[Document]:
     """Parse Doxygen module XML files into LangChain documents."""
     docs: list[Document] = []
 
@@ -36,7 +45,29 @@ def parse_xml_directory(xml_dir: Path, markdown_dir: Path) -> list[Document]:
             continue
 
         try:
-            parsed = _parse_single_module(xml_dir=xml_dir, xml_name=xml_name, markdown_dir=markdown_dir)
+            parsed = _parse_single_module(
+                xml_dir=xml_dir,
+                xml_name=xml_name,
+                markdown_dir=markdown_dir,
+                include_flowchart=include_flowchart,
+            )
+        except Exception as exc:
+            print(f"Skipping {xml_name}: {exc}")
+            continue
+        docs.extend(parsed)
+
+    for xml_file in xml_files:
+        xml_name = xml_file.name
+        if not xml_name.startswith("interface"):
+            continue
+
+        try:
+            parsed = _parse_single_interface(
+                xml_dir=xml_dir,
+                xml_name=xml_name,
+                markdown_dir=markdown_dir,
+                include_flowchart=include_flowchart,
+            )
         except Exception as exc:
             print(f"Skipping {xml_name}: {exc}")
             continue
@@ -45,14 +76,19 @@ def parse_xml_directory(xml_dir: Path, markdown_dir: Path) -> list[Document]:
     return docs
 
 
-def _parse_single_module(xml_dir: Path, xml_name: str, markdown_dir: Path) -> list[Document]:
+def _parse_single_module(
+    xml_dir: Path,
+    xml_name: str,
+    markdown_dir: Path,
+    include_flowchart: bool,
+) -> list[Document]:
     """Parse one module XML file and return procedure + variable documents."""
     try:
         module_doc = ModuleBodyDocument(
             xmldir=xml_dir,
             xmlfile=xml_name,
             append_overview=True,
-            include_flowchart=False,
+            include_flowchart=include_flowchart,
         )
     except Exception:
         # Some module files may not have a matching top-level overview XML.
@@ -60,7 +96,7 @@ def _parse_single_module(xml_dir: Path, xml_name: str, markdown_dir: Path) -> li
             xmldir=xml_dir,
             xmlfile=xml_name,
             append_overview=False,
-            include_flowchart=False,
+            include_flowchart=include_flowchart,
         )
 
     module_doc.document_module_variables()
@@ -77,10 +113,19 @@ def _parse_single_module(xml_dir: Path, xml_name: str, markdown_dir: Path) -> li
 
     out_docs: list[Document] = []
     module_name = str(module_doc.toplevel_name)
+
+    procedure_names = [
+        module_doc.get_name(proc)
+        for proc in module_doc.soup.find_all("memberdef", {"kind": "function"})
+    ]
+    variable_names = [
+        module_doc.get_name(var)
+        for var in module_doc.soup.find_all("memberdef", {"kind": "variable"})
+    ]
     
     # Create documents for each procedure using individual procedure names
     for i, procedure_md in enumerate(module_doc.procedures_md):
-        procedure_name = module_doc.procedure_names[i] if i < len(module_doc.procedure_names) else f"procedure_{i}"
+        procedure_name = procedure_names[i] if i < len(procedure_names) else f"procedure_{i}"
         out_docs.append(
             Document(
                 page_content=procedure_md,
@@ -95,13 +140,13 @@ def _parse_single_module(xml_dir: Path, xml_name: str, markdown_dir: Path) -> li
         )
 
     # Create separate documents for each variable using individual variable names
-    if module_doc.variables_md and module_doc.variable_names:
+    if module_doc.variables_md and variable_names:
         # Skip the header and table format lines (first 2 items)
         variable_rows = module_doc.variables_md[2:-1]  # Exclude header, format line, and trailing newline
         
         for i, var_row in enumerate(variable_rows):
-            if i < len(module_doc.variable_names):
-                variable_name = module_doc.variable_names[i]
+            if i < len(variable_names):
+                variable_name = variable_names[i]
                 out_docs.append(
                     Document(
                         page_content=var_row,
@@ -118,7 +163,89 @@ def _parse_single_module(xml_dir: Path, xml_name: str, markdown_dir: Path) -> li
     return out_docs
 
 
-def ensure_collection(client: MilvusClient, collection_name: str, recreate: bool) -> None:
+def _parse_single_interface(
+    xml_dir: Path,
+    xml_name: str,
+    markdown_dir: Path,
+    include_flowchart: bool,
+) -> list[Document]:
+    """Parse one interface XML file and associate it with its owning module."""
+    interface_doc = InterfaceDocument(
+        xmldir=xml_dir,
+        xmlfile=xml_name,
+        include_flowchart=include_flowchart,
+    )
+    interface_markdown = interface_doc.document_interface()
+
+    markdown_dir.mkdir(parents=True, exist_ok=True)
+    original_cwd = Path.cwd()
+    try:
+        os.chdir(markdown_dir)
+        markdown_file = interface_doc.write_markdown()
+    finally:
+        os.chdir(original_cwd)
+
+    metadata = {
+        "source": interface_doc.module_name or interface_doc.interface_name,
+        "name": interface_doc.generic_name,
+        "kind": "interface",
+        "xml_file": xml_name,
+        "markdown_file": markdown_file,
+    }
+
+    docs = [
+        Document(
+            page_content=interface_markdown,
+            metadata=metadata,
+        )
+    ]
+
+    for procedure in interface_doc.soup.find_all("memberdef", {"kind": "function"}):
+        procedure_name = interface_doc.get_name(procedure)
+        procedure_type = interface_doc.get_tag_to_string("type", procedure).split(",")[0].strip()
+        parameters_description = interface_doc.get_parameters_description(
+            procedure,
+            subroutine_name=procedure_name,
+        )
+        briefdescription = interface_doc.get_tag_to_string("briefdescription", procedure)
+        detaileddescription = interface_doc.get_tag_to_string("detaileddescription", procedure)
+
+        if briefdescription and briefdescription[-1] != ".":
+            briefdescription += "."
+        if detaileddescription and detaileddescription[-1] != ".":
+            detaileddescription += "."
+
+        procedure_markdown = (
+            f"## {procedure_name}\n"
+            f"### intro\n"
+            f"{procedure_name} is a {procedure_type} implementation of the "
+            f"{interface_doc.generic_name} interface in {metadata['source']}.\n"
+            f"### description\n"
+            f"{briefdescription}  {detaileddescription}\n"
+            f"### arguments\n{parameters_description}\n"
+        )
+
+        docs.append(
+            Document(
+                page_content=procedure_markdown,
+                metadata={
+                    **metadata,
+                    "name": procedure_name,
+                    "interface_name": interface_doc.generic_name,
+                    "kind": "interface_procedure",
+                },
+            )
+        )
+
+    return docs
+
+
+def ensure_collection(
+    client: MilvusClient,
+    collection_name: str,
+    recreate: bool,
+    vector_dim: int,
+) -> None:
     """Create collection if missing, or recreate if requested."""
     exists = client.has_collection(collection_name=collection_name)
     if exists and recreate:
@@ -134,7 +261,8 @@ def ensure_collection(client: MilvusClient, collection_name: str, recreate: bool
         schema.add_field(field_name="kind", datatype=DataType.VARCHAR, max_length=128)
         schema.add_field(field_name="xml_file", datatype=DataType.VARCHAR, max_length=1024)
         schema.add_field(field_name="markdown_file", datatype=DataType.VARCHAR, max_length=1024)
-        schema.add_field(field_name="embedding", datatype=DataType.FLOAT_VECTOR, dim=2)
+        schema.add_field(field_name="interface_name", datatype=DataType.VARCHAR, max_length=1024)
+        schema.add_field(field_name="embedding", datatype=DataType.FLOAT_VECTOR, dim=vector_dim)
 
         client.create_collection(collection_name=collection_name, schema=schema)
 
@@ -149,14 +277,17 @@ def ingest_documents(
     collection_name: str,
     documents: list[Document],
     batch_size: int,
+    embeddings: HuggingFaceEmbeddings,
 ) -> int:
     """Insert parsed documents into Milvus."""
     inserted = 0
-    default_embedding = [0.0, 0.0]
 
     for chunk in batch_chunks(documents, batch_size):
+        chunk_texts = [doc.page_content for doc in chunk]
+        chunk_embeddings = embeddings.embed_documents(chunk_texts)
+
         rows: list[dict[str, object]] = []
-        for doc in chunk:
+        for doc, embedding in zip(chunk, chunk_embeddings):
             metadata = dict(doc.metadata)
             rows.append(
                 {
@@ -166,7 +297,8 @@ def ingest_documents(
                     "kind": str(metadata.get("kind", "")),
                     "xml_file": str(metadata.get("xml_file", "")),
                     "markdown_file": str(metadata.get("markdown_file", "")),
-                    "embedding": default_embedding,
+                    "interface_name": str(metadata.get("interface_name", "")),
+                    "embedding": embedding,
                 }
             )
 
@@ -190,6 +322,7 @@ def main() -> int:
     markdown_export_dir = Path("/home/Ryan.Mulhall/msdagents/fms-chatbot/local_storage/parsed_modules")
     batch_size = 100
     recreate_collection = True
+    include_flowchart = False
 
     if not Path(xml_dir).exists() or not Path(xml_dir).is_dir():
         Path(xml_dir).mkdir(parents=True, exist_ok=True)
@@ -197,15 +330,27 @@ def main() -> int:
         print("batch-size must be > 0")
         return 1
 
-    docs = parse_xml_directory(xml_dir=Path(xml_dir), markdown_dir=markdown_export_dir)
+    docs = parse_xml_directory(
+        xml_dir=Path(xml_dir),
+        markdown_dir=markdown_export_dir,
+        include_flowchart=include_flowchart,
+    )
+
     if not docs:
         print("No parseable module XML files found (expected namespace*__mod.xml files).")
         return 1
 
+    embeddings = HuggingFaceEmbeddings(
+        model_name=EMBEDDING_MODEL,
+        model_kwargs={"device": "cpu"},
+        encode_kwargs={"normalize_embeddings": True},
+    )
+    vector_dim = len(embeddings.embed_query("vector dimension probe"))
+
     client = connect_client(milvus_db_path)
     try:
-        ensure_collection(client, collection_name, recreate_collection)
-        inserted = ingest_documents(client, collection_name, docs, batch_size)
+        ensure_collection(client, collection_name, recreate_collection, vector_dim)
+        inserted = ingest_documents(client, collection_name, docs, batch_size, embeddings)
     finally:
         if hasattr(client, "close"):
             client.close()
