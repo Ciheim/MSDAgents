@@ -16,6 +16,7 @@ dependencies = [
     "lxml",
     "pydantic",
     "pymilvus==2.5.10",
+    "pyyaml",
     "sentence_transformers"
 ]
 
