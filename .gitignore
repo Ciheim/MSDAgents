@@ -2,3 +2,4 @@ __pycache__/
 venv/
 gfdl_fre_vectors.db/
 gfdl_fre_chatbot_analytics.db
+chatbot_output_log.yaml
