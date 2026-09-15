@@ -1,25 +1,21 @@
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
 [project]
-name = "msd_chatbots"
+name = "msdagents"
 version = "0.1.0"
-requires-python = ">=3.12"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
 dependencies = [
-    "beautifulsoup4",
-    "langchain-core",
-    "langchain-huggingface",
-    "langchain-milvus==0.3.3",
-    "langchain-ollama",
-    "langchain-text-splitters",
+    "langchain",
+    "langchain-milvus",
+    "langchain_ollama",
+    "langchain_community",
+    "langchain_text_splitters",
+    "python-dotenv",
+    "fastapi",
+    "uvicorn",
     "lxml",
     "pydantic",
     "pymilvus==2.5.10",
     "pyyaml",
     "sentence_transformers"
 ]
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["shared*", "parsers*"]
