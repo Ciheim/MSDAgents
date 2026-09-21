@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import fcntl
 from datetime import datetime, timedelta, timezone
+import os
 from pathlib import Path
 from typing import Any
 
@@ -13,12 +15,8 @@ SYSTEM_PROMPT_KEY = "System prompt"
 RETRIEVED_FILES_KEY = "retrieved files"
 RETENTION_DAYS = 30
 
-_configured_log_file = Path(OUTPUT_LOG_FILE)
-
-
-def configure_yaml_logging(log_file: str | Path = OUTPUT_LOG_FILE) -> None:
-    global _configured_log_file
-    _configured_log_file = Path(log_file)
+def configure_yaml_logging(log_file: str | Path = OUTPUT_LOG_FILE) -> Path:
+    return Path(log_file)
 
 
 def _normalize_timestamp(value: str) -> datetime | None:
@@ -37,13 +35,7 @@ def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _load_log_root(model_name: str, system_prompt: str) -> dict[str, Any]:
-    if _configured_log_file.exists():
-        with _configured_log_file.open("r", encoding="utf-8") as log_file:
-            existing_data = yaml.safe_load(log_file) or {}
-    else:
-        existing_data = {}
-
+def _load_log_root(existing_data: Any, model_name: str, system_prompt: str) -> dict[str, Any]:
     existing_root = existing_data.get(LOG_ROOT_TITLE, {})
     if not isinstance(existing_root, dict):
         existing_root = {}
@@ -80,20 +72,42 @@ def _prune_expired_entries(log_root: dict[str, Any], now: datetime) -> dict[str,
     return pruned_root
 
 
-def _write_log_root(log_root: dict[str, Any]) -> None:
-    with _configured_log_file.open("w", encoding="utf-8") as log_file:
-        yaml.safe_dump({LOG_ROOT_TITLE: log_root}, log_file, sort_keys=False, allow_unicode=True)
+def _update_yaml_log(
+    log_file: str | Path,
+    model_name: str,
+    system_prompt: str,
+    *,
+    now: datetime,
+    interaction: dict[str, Any] | None = None,
+) -> None:
+    log_path = Path(log_file)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with log_path.open("a+", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        handle.seek(0)
+        existing_data = yaml.safe_load(handle.read()) or {}
+        log_root = _prune_expired_entries(_load_log_root(existing_data, model_name, system_prompt), now)
+        if interaction is not None:
+            log_root[now.isoformat()] = interaction
+
+        handle.seek(0)
+        handle.truncate()
+        yaml.safe_dump({LOG_ROOT_TITLE: log_root}, handle, sort_keys=False, allow_unicode=True)
+        handle.flush()
+        os.fsync(handle.fileno())
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
 def initialize_yaml_log(
     model_name: str,
     system_prompt: str,
+    log_file: str | Path = OUTPUT_LOG_FILE,
     *,
     now: datetime | None = None,
 ) -> None:
     current_time = now or _utc_now()
-    log_root = _load_log_root(model_name, system_prompt)
-    _write_log_root(_prune_expired_entries(log_root, current_time))
+    _update_yaml_log(log_file, model_name, system_prompt, now=current_time)
 
 
 def log_interaction(
@@ -102,14 +116,12 @@ def log_interaction(
     question: str,
     response: str,
     docs_and_scores: list[tuple[Any, float]],
+    log_file: str | Path = OUTPUT_LOG_FILE,
     *,
     now: datetime | None = None,
 ) -> None:
     current_time = now or _utc_now()
-    log_root = _prune_expired_entries(_load_log_root(model_name, system_prompt), current_time)
-    timestamp = current_time.isoformat()
-
-    log_root[timestamp] = {
+    interaction = {
         "query": question,
         "response": response,
         RETRIEVED_FILES_KEY: [
@@ -120,4 +132,4 @@ def log_interaction(
             for doc, score in docs_and_scores
         ],
     }
-    _write_log_root(log_root)
+    _update_yaml_log(log_file, model_name, system_prompt, now=current_time, interaction=interaction)

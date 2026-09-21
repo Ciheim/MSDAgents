@@ -26,8 +26,7 @@ class _FakeDocument:
 class SharedLoggerTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
-        self.log_path = Path(self.temp_dir.name) / "MSD_Chatbot_Log.yaml"
-        configure_yaml_logging(self.log_path)
+        self.log_path = configure_yaml_logging(Path(self.temp_dir.name) / "MSD_Chatbot_Log.yaml")
 
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
@@ -40,23 +39,25 @@ class SharedLoggerTests(unittest.TestCase):
         first_time = datetime(2026, 9, 1, 12, 0, tzinfo=timezone.utc)
         second_time = datetime(2026, 9, 2, 12, 0, tzinfo=timezone.utc)
 
-        initialize_yaml_log("model-a", "system-a", now=first_time)
+        initialize_yaml_log("model-a", "system-a", self.log_path, now=first_time)
         log_interaction(
             "model-a",
             "system-a",
             "first question",
             "first answer",
             [(_FakeDocument("file-a.md"), 0.25)],
+            self.log_path,
             now=first_time,
         )
 
-        initialize_yaml_log("model-b", "system-b", now=second_time)
+        initialize_yaml_log("model-b", "system-b", self.log_path, now=second_time)
         log_interaction(
             "model-b",
             "system-b",
             "second question",
             "second answer",
             [(_FakeDocument("file-b.md"), 0.5)],
+            self.log_path,
             now=second_time,
         )
 
@@ -107,7 +108,7 @@ class SharedLoggerTests(unittest.TestCase):
                 allow_unicode=True,
             )
 
-        initialize_yaml_log("model-a", "system-a", now=current_time)
+        initialize_yaml_log("model-a", "system-a", self.log_path, now=current_time)
 
         data = self._read_log()
         root = data[LOG_ROOT_TITLE]
