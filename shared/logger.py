@@ -182,7 +182,7 @@ def log_interaction(
             {
                 "source": doc.metadata.get("source", "unknown"),
                 "similarity_score": float(score),
-                "chunk": doc.page_content,
+                "chunk": getattr(doc, "page_content", ""),
             }
             for doc, score in docs_and_scores
         ],
