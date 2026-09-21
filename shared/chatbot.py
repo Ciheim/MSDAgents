@@ -8,8 +8,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 from shared.logger import configure_yaml_logging, initialize_yaml_log, log_interaction
 
-logger: logging.Logger = logging.getLogger(__name__)
-
 OLLAMA_CHAT_MODEL = "mistral-nemo:latest"
 HYBRID_LIMIT = 24
 
@@ -57,13 +55,9 @@ class RAGChatbot:
     def simple_retrieve(self, question: str) -> list[tuple[Document, float]]:
         """Search unified vectorstore and assemble sibling chunks by parent."""
 
-        logger.debug(f"Querying vectorstore with top_k={HYBRID_LIMIT}: '{question}'")
-
         docs_and_scores = self.vectorstore.similarity_search_with_score(
             question, k=HYBRID_LIMIT, **self.hybrid_kwargs
         )
-
-        logger.debug(f"Raw similarity distance scores retrieved: {[score for _, score in docs_and_scores]}")
 
         return docs_and_scores
 
