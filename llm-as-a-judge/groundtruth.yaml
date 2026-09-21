@@ -1,0 +1,2 @@
+Do I have to use fre-cli to generate a catalog?: No, you do not need to use fre-cli to generate a catalog.
+What command can I use to compile a model?: The `fre make compile-script` command will compile a model with the `-execute` option.  
