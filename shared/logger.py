@@ -11,7 +11,10 @@ try:
     import fcntl
 except ImportError:
     fcntl = None
-    import msvcrt
+    try:
+        import msvcrt
+    except ImportError:
+        msvcrt = None
 else:
     msvcrt = None
 
@@ -113,8 +116,9 @@ def _update_yaml_log(
 ) -> None:
     log_path = Path(log_file)
     log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_path.touch(exist_ok=True)
 
-    with log_path.open("a+", encoding="utf-8") as handle:
+    with log_path.open("r+", encoding="utf-8") as handle:
         _lock_file(handle)
         try:
             handle.seek(0)
