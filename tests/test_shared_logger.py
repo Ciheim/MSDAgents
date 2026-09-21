@@ -19,8 +19,9 @@ from shared.logger import (
 
 
 class _FakeDocument:
-    def __init__(self, source: str):
+    def __init__(self, source: str, page_content: str = ""):
         self.metadata = {"source": source}
+        self.page_content = page_content
 
 
 class SharedLoggerTests(unittest.TestCase):
@@ -45,7 +46,7 @@ class SharedLoggerTests(unittest.TestCase):
             "system-a",
             "first question",
             "first answer",
-            [(_FakeDocument("file-a.md"), 0.25)],
+            [(_FakeDocument("file-a.md", "first chunk"), 0.25)],
             self.log_path,
             now=first_time,
         )
@@ -56,7 +57,7 @@ class SharedLoggerTests(unittest.TestCase):
             "system-b",
             "second question",
             "second answer",
-            [(_FakeDocument("file-b.md"), 0.5)],
+            [(_FakeDocument("file-b.md", "second chunk"), 0.5)],
             self.log_path,
             now=second_time,
         )
@@ -71,7 +72,69 @@ class SharedLoggerTests(unittest.TestCase):
         self.assertEqual(root[second_time.isoformat()]["response"], "second answer")
         self.assertEqual(
             root[second_time.isoformat()][RETRIEVED_FILES_KEY],
-            [{"source": "file-b.md", "similarity_score": 0.5}],
+            [{"source": "file-b.md", "similarity_score": 0.5, "chunk": "second chunk"}],
+        )
+
+    def test_retrieved_chunks_round_trip_exactly_and_remain_separate(self) -> None:
+        first_time = datetime(2026, 9, 3, 12, 0, tzinfo=timezone.utc)
+        second_time = datetime(2026, 9, 4, 12, 0, tzinfo=timezone.utc)
+
+        initialize_yaml_log("model-a", "system-a", self.log_path, now=first_time)
+        log_interaction(
+            "model-a",
+            "system-a",
+            "question",
+            "answer",
+            [
+                (
+                    _FakeDocument(
+                        "shared/logger.py",
+                        "def log_interaction():\n    return '✓'\n",
+                    ),
+                    0.125,
+                ),
+                (
+                    _FakeDocument(
+                        "shared/logger.py",
+                        "if value == 'Δ':\n        print('你好')",
+                    ),
+                    0.875,
+                ),
+                (
+                    _FakeDocument(
+                        "docs/empty.txt",
+                        "",
+                    ),
+                    1.0,
+                ),
+            ],
+            self.log_path,
+            now=first_time,
+        )
+
+        initialize_yaml_log("model-b", "system-b", self.log_path, now=second_time)
+
+        data = self._read_log()
+        root = data[LOG_ROOT_TITLE]
+        self.assertEqual(
+            root[first_time.isoformat()][RETRIEVED_FILES_KEY],
+            [
+                {
+                    "source": "shared/logger.py",
+                    "similarity_score": 0.125,
+                    "chunk": "def log_interaction():\n    return '✓'\n",
+                },
+                {
+                    "source": "shared/logger.py",
+                    "similarity_score": 0.875,
+                    "chunk": "if value == 'Δ':\n        print('你好')",
+                },
+                {
+                    "source": "docs/empty.txt",
+                    "similarity_score": 1.0,
+                    "chunk": "",
+                },
+            ],
         )
 
     def test_prunes_only_entries_strictly_older_than_thirty_days(self) -> None:
@@ -133,7 +196,7 @@ class SharedLoggerTests(unittest.TestCase):
             "system-a",
             "question",
             "answer",
-            [(_FakeDocument("file-a.md"), 0.4)],
+            [(_FakeDocument("file-a.md", "chunk"), 0.4)],
             self.log_path,
             now=current_time,
         )
