@@ -20,7 +20,7 @@ else:
     msvcrt = None
 
 OUTPUT_LOG_FILE = "MSD_Chatbot_Log.yaml"
-LOG_ROOT_TITLE = "MSD Chabot Log"
+LOG_ROOT_TITLE = "MSD Chatbot Log"
 AI_MODEL_KEY = "AI model"
 SYSTEM_PROMPT_KEY = "System prompt"
 RETRIEVED_FILES_KEY = "retrieved files"
