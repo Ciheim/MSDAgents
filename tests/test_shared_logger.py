@@ -117,6 +117,27 @@ class SharedLoggerTests(unittest.TestCase):
         self.assertIn(at_cutoff.isoformat(), root)
         self.assertIn(recent.isoformat(), root)
 
+    def test_invalid_yaml_is_reinitialized(self) -> None:
+        self.log_path.write_text("MSD Chabot Log: [\n", encoding="utf-8")
+
+        current_time = datetime(2026, 9, 21, 17, 5, tzinfo=timezone.utc)
+        initialize_yaml_log("model-a", "system-a", self.log_path, now=current_time)
+        log_interaction(
+            "model-a",
+            "system-a",
+            "question",
+            "answer",
+            [(_FakeDocument("file-a.md"), 0.4)],
+            self.log_path,
+            now=current_time,
+        )
+
+        data = self._read_log()
+        root = data[LOG_ROOT_TITLE]
+        self.assertEqual(root[AI_MODEL_KEY], "model-a")
+        self.assertEqual(root[SYSTEM_PROMPT_KEY], "system-a")
+        self.assertEqual(root[current_time.isoformat()]["query"], "question")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -24,7 +24,6 @@ AI_MODEL_KEY = "AI model"
 SYSTEM_PROMPT_KEY = "System prompt"
 RETRIEVED_FILES_KEY = "retrieved files"
 RETENTION_DAYS = 30
-WINDOWS_LOCK_SIZE = 2**31 - 1
 
 def configure_yaml_logging(log_file: str | Path = OUTPUT_LOG_FILE) -> Path:
     return Path(log_file)
@@ -92,8 +91,11 @@ def _lock_file(handle: Any) -> None:
         return
 
     if msvcrt is not None:
+        handle.seek(0, os.SEEK_END)
+        lock_size = max(handle.tell(), 1)
         handle.seek(0)
-        msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, WINDOWS_LOCK_SIZE)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, lock_size)
+        handle._msd_lock_size = lock_size
 
 
 def _unlock_file(handle: Any) -> None:
@@ -102,8 +104,9 @@ def _unlock_file(handle: Any) -> None:
         return
 
     if msvcrt is not None:
+        lock_size = getattr(handle, "_msd_lock_size", 1)
         handle.seek(0)
-        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, WINDOWS_LOCK_SIZE)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, lock_size)
 
 
 def _update_yaml_log(
@@ -122,7 +125,10 @@ def _update_yaml_log(
         _lock_file(handle)
         try:
             handle.seek(0)
-            existing_data = yaml.safe_load(handle.read()) or {}
+            try:
+                existing_data = yaml.safe_load(handle.read()) or {}
+            except yaml.YAMLError:
+                existing_data = {}
             log_root = _prune_expired_entries(_load_log_root(existing_data, model_name, system_prompt), now)
             if interaction is not None:
                 log_root[now.isoformat()] = interaction
