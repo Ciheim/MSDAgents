@@ -6,9 +6,6 @@ from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
-import logging
-
-logger: logging.Logger = logging.getLogger(__name__)
 
 OLLAMA_CHAT_MODEL = "mistral-nemo:latest"
 HYBRID_LIMIT = 24
@@ -103,20 +100,15 @@ class RAGChatbot:
         if enable_yaml_logging:
             configure_yaml_logging(log_file)
             _initialize_yaml_log(model_name, system_message)
-            logger.debug(f"YAML logging initialized: {log_file}")
         
         self.enable_yaml_logging = enable_yaml_logging
 
     def simple_retrieve(self, question: str) -> list[tuple[Document, float]]:
         """Search unified vectorstore and assemble sibling chunks by parent."""
 
-        logger.debug(f"Querying vectorstore with top_k={HYBRID_LIMIT}: '{question}'")
-
         docs_and_scores = self.vectorstore.similarity_search_with_score(
             question, k=HYBRID_LIMIT, **self.hybrid_kwargs
         )
-
-        logger.debug(f"Raw similarity distance scores retrieved: {[score for _, score in docs_and_scores]}")
 
         return docs_and_scores
 
@@ -130,6 +122,5 @@ class RAGChatbot:
         # Log interaction to YAML if enabled
         if self.enable_yaml_logging:
             _log_interaction(question, answer, docs_and_scores)
-            logger.debug(f"Interaction logged to {_log_file}")
         
         return answer, docs_and_scores, context
