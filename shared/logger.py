@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 import os
+import os
 from pathlib import Path
 from typing import Any
 
@@ -77,7 +78,7 @@ def _prune_expired_entries(log_root: dict[str, Any], now: datetime) -> dict[str,
             continue
 
         timestamp = _normalize_timestamp(key)
-        if timestamp is not None and timestamp < cutoff:
+        if timestamp is None or timestamp < cutoff:
             continue
 
         pruned_root[key] = value
@@ -92,7 +93,13 @@ def _lock_file(handle: Any) -> None:
 
     if msvcrt is not None:
         handle.seek(0)
-        msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+        while True:
+            try:
+                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                break
+            except OSError:
+                time.sleep(0.1)
+                handle.seek(0)
 
 
 def _unlock_file(handle: Any) -> None:

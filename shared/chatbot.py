@@ -6,7 +6,7 @@ from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
-from shared.logger import OUTPUT_LOG_FILE, configure_yaml_logging, initialize_yaml_log, log_interaction
+from shared.logger import OUTPUT_LOG_FILE, configure_yaml_logging, log_interaction
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -52,7 +52,6 @@ class RAGChatbot:
         self.answer_chain = self.prompt | self.chatbot | StrOutputParser()
         
         self.log_file = configure_yaml_logging(log_file)
-        initialize_yaml_log(self.model_name, self.system_message, self.log_file)
 
     def simple_retrieve(self, question: str) -> list[tuple[Document, float]]:
         """Search unified vectorstore and assemble sibling chunks by parent."""

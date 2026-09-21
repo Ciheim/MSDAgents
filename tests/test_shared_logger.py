@@ -101,6 +101,11 @@ class SharedLoggerTests(unittest.TestCase):
                             "response": "recent answer",
                             RETRIEVED_FILES_KEY: [],
                         },
+                        "legacy_entry": {
+                            "query": "legacy question",
+                            "response": "legacy answer",
+                            RETRIEVED_FILES_KEY: [],
+                        },
                     }
                 },
                 log_file,
@@ -116,6 +121,7 @@ class SharedLoggerTests(unittest.TestCase):
         self.assertNotIn(too_old.isoformat(), root)
         self.assertIn(at_cutoff.isoformat(), root)
         self.assertIn(recent.isoformat(), root)
+        self.assertNotIn("legacy_entry", root)
 
     def test_invalid_yaml_is_reinitialized(self) -> None:
         self.log_path.write_text("MSD Chabot Log: [\n", encoding="utf-8")
