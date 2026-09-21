@@ -10,12 +10,12 @@ dependencies = [
     "beautifulsoup4",
     "langchain-core",
     "langchain-huggingface",
-    "langchain-milvus==0.3.3",
+    "langchain-milvus",
     "langchain-ollama",
     "langchain-text-splitters",
     "lxml",
     "pydantic",
-    "pymilvus==2.5.10",
+    "pymilvus==2.6.8",
     "sentence_transformers"
 ]
 

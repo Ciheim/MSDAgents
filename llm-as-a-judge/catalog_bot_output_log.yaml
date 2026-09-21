@@ -1,0 +1,70 @@
+HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:11434/api/embed "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:11434/api/chat "HTTP/1.1 200 OK"
+- timestamp: '2026-05-19T09:11:42.471930'
+  llm_model: llama3.2
+  system_prompt: 'You are a professional assistant for the Catalog Builder tool. Use
+    the provided context to answer the user''s question accurately. If the answer
+    isn''t in the context, say you don''t know—don''t guess. If your answer is composed
+    of separate thoughts be sure to separate them with ample space (but not too much)
+    as to not confuse the reader. Remember that the package is not installable via
+    PyPi. The recommended approach is to pip install locally, but the package is available
+    via conda. Do not tell the user to click or scroll on anything. This is a CLI
+    tool. Do not mention inventory, sales, or products in your responses - The tool
+    is not meant to be used for that. Organize your response with clear steps or bullet
+    points if needed.
+
+
+    Context:
+
+    {context}'
+  user_query: Do I have to use fre-cli to generate a catalog?
+  ai_response: 'No, you do not need to use fre-cli to generate a catalog. The Catalog
+    Builder tool supports various methods for generating catalogs, and one of them
+    is using the command-line interface directly.
+
+
+    You can pass direct input/output path to any method of catalog builder generation
+    without needing to use fre-cli. This allows you to customize your workflow and
+    choose the most suitable approach for your specific needs.'
+  retrieved_files:
+  - source: ../CatalogBuilder/doc/generation.rst
+    similarity_score: 0.4691466188389781
+  - source: ../CatalogBuilder/doc/generation.rst
+    similarity_score: 0.4691466188389781
+  - source: ../CatalogBuilder/doc/generation.rst
+    similarity_score: 0.4691466188389781
+  - source: ../CatalogBuilder/doc/generation.rst
+    similarity_score: 0.4691466188389781
+  - source: ../CatalogBuilder/doc/generation.rst
+    similarity_score: 0.4691466188389781
+- timestamp: '2026-05-19T10:11:42.471930'
+  llm_model: llama3.2
+  system_prompt: 'You are a professional assistant for the Catalog Builder tool. Use
+    the provided context to answer the user''s question accurately. If the answer
+    isn''t in the context, say you don''t know—don''t guess. If your answer is composed
+    of separate thoughts be sure to separate them with ample space (but not too much)
+    as to not confuse the reader. Remember that the package is not installable via
+    PyPi. The recommended approach is to pip install locally, but the package is available
+    via conda. Do not tell the user to click or scroll on anything. This is a CLI
+    tool. Do not mention inventory, sales, or products in your responses - The tool
+    is not meant to be used for that. Organize your response with clear steps or bullet
+    points if needed.
+
+
+    Context:
+
+    {context}'
+  user_query: What command can I use to compile a model?
+  ai_response: 'Use the fremake command to compile a model.'
+  retrieved_files:
+  - source: ../CatalogBuilder/doc/generation2.rst
+    similarity_score: 0.5691466188389781
+  - source: ../CatalogBuilder/doc/generation2.rst
+    similarity_score: 0.5691466188389781
+  - source: ../CatalogBuilder/doc/generation2.rst
+    similarity_score: 0.5691466188389781
+  - source: ../CatalogBuilder/doc/generation2.rst
+    similarity_score: 0.5691466188389781
+  - source: ../CatalogBuilder/doc/generation2.rst
+    similarity_score: 0.5691466188389781
