@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Any
 
 from langchain_core.documents import Document
@@ -22,7 +23,7 @@ class RAGChatbot:
                  model_name: str = OLLAMA_CHAT_MODEL,
                  search_hybrid = False,
                  retrieve_function: Any = None,
-                 log_file: str = OUTPUT_LOG_FILE,
+                 log_file: str | Path = OUTPUT_LOG_FILE,
     ):
         
         self.chatbot = ChatOllama(model=model_name, temperature=temperature)

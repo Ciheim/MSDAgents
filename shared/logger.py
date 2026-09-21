@@ -1,12 +1,19 @@
 from __future__ import annotations
 
-import fcntl
 from datetime import datetime, timedelta, timezone
 import os
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
+    import msvcrt
+else:
+    msvcrt = None
 
 OUTPUT_LOG_FILE = "MSD_Chatbot_Log.yaml"
 LOG_ROOT_TITLE = "MSD Chabot Log"
@@ -36,6 +43,9 @@ def _utc_now() -> datetime:
 
 
 def _load_log_root(existing_data: Any, model_name: str, system_prompt: str) -> dict[str, Any]:
+    if not isinstance(existing_data, dict):
+        existing_data = {}
+
     existing_root = existing_data.get(LOG_ROOT_TITLE, {})
     if not isinstance(existing_root, dict):
         existing_root = {}
@@ -72,6 +82,26 @@ def _prune_expired_entries(log_root: dict[str, Any], now: datetime) -> dict[str,
     return pruned_root
 
 
+def _lock_file(handle: Any) -> None:
+    if fcntl is not None:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        return
+
+    if msvcrt is not None:
+        handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+
+
+def _unlock_file(handle: Any) -> None:
+    if fcntl is not None:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        return
+
+    if msvcrt is not None:
+        handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+
+
 def _update_yaml_log(
     log_file: str | Path,
     model_name: str,
@@ -84,7 +114,7 @@ def _update_yaml_log(
     log_path.parent.mkdir(parents=True, exist_ok=True)
 
     with log_path.open("a+", encoding="utf-8") as handle:
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        _lock_file(handle)
         handle.seek(0)
         existing_data = yaml.safe_load(handle.read()) or {}
         log_root = _prune_expired_entries(_load_log_root(existing_data, model_name, system_prompt), now)
@@ -96,7 +126,7 @@ def _update_yaml_log(
         yaml.safe_dump({LOG_ROOT_TITLE: log_root}, handle, sort_keys=False, allow_unicode=True)
         handle.flush()
         os.fsync(handle.fileno())
-        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        _unlock_file(handle)
 
 
 def initialize_yaml_log(
