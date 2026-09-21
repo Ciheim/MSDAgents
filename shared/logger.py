@@ -91,11 +91,8 @@ def _lock_file(handle: Any) -> None:
         return
 
     if msvcrt is not None:
-        handle.seek(0, os.SEEK_END)
-        lock_size = max(handle.tell(), 1)
         handle.seek(0)
-        msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, lock_size)
-        handle._msd_lock_size = lock_size
+        msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
 
 
 def _unlock_file(handle: Any) -> None:
@@ -104,9 +101,8 @@ def _unlock_file(handle: Any) -> None:
         return
 
     if msvcrt is not None:
-        lock_size = getattr(handle, "_msd_lock_size", 1)
         handle.seek(0)
-        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, lock_size)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
 
 
 def _update_yaml_log(
@@ -124,6 +120,11 @@ def _update_yaml_log(
     lock_path.touch(exist_ok=True)
 
     with lock_path.open("r+", encoding="utf-8") as lock_handle:
+        if lock_handle.read(1) == "":
+            lock_handle.write("\0")
+            lock_handle.flush()
+            os.fsync(lock_handle.fileno())
+        lock_handle.seek(0)
         _lock_file(lock_handle)
         try:
             with log_path.open("r+", encoding="utf-8") as handle:
