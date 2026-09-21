@@ -119,9 +119,9 @@ def _update_yaml_log(
     log_path.touch(exist_ok=True)
     lock_path.touch(exist_ok=True)
 
-    with lock_path.open("r+", encoding="utf-8") as lock_handle:
-        if lock_handle.read(1) == "":
-            lock_handle.write("\0")
+    with lock_path.open("r+b") as lock_handle:
+        if lock_handle.read(1) == b"":
+            lock_handle.write(b"\0")
             lock_handle.flush()
             os.fsync(lock_handle.fileno())
         lock_handle.seek(0)

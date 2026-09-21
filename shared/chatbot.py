@@ -52,7 +52,7 @@ class RAGChatbot:
         self.answer_chain = self.prompt | self.chatbot | StrOutputParser()
         
         self.log_file = configure_yaml_logging(log_file)
-        initialize_yaml_log(model_name, system_message, self.log_file)
+        initialize_yaml_log(self.model_name, self.system_message, self.log_file)
 
     def simple_retrieve(self, question: str) -> list[tuple[Document, float]]:
         """Search unified vectorstore and assemble sibling chunks by parent."""
