@@ -3,3 +3,4 @@ venv/
 gfdl_fre_vectors.db/
 gfdl_fre_chatbot_analytics.db
 MSD_Chatbot_Log.yaml
+MSD_Chatbot_Log.yaml.lock

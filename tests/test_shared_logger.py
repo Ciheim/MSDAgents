@@ -65,8 +65,8 @@ class SharedLoggerTests(unittest.TestCase):
         root = data[LOG_ROOT_TITLE]
 
         self.assertEqual(list(root)[:2], [AI_MODEL_KEY, SYSTEM_PROMPT_KEY])
-        self.assertEqual(root[AI_MODEL_KEY], "model-b")
-        self.assertEqual(root[SYSTEM_PROMPT_KEY], "system-b")
+        self.assertEqual(root[AI_MODEL_KEY], "model-a")
+        self.assertEqual(root[SYSTEM_PROMPT_KEY], "system-a")
         self.assertEqual(root[first_time.isoformat()]["query"], "first question")
         self.assertEqual(root[second_time.isoformat()]["response"], "second answer")
         self.assertEqual(

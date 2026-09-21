@@ -54,8 +54,8 @@ def _load_log_root(existing_data: Any, model_name: str, system_prompt: str) -> d
         existing_root = {}
 
     log_root: dict[str, Any] = {
-        AI_MODEL_KEY: model_name,
-        SYSTEM_PROMPT_KEY: system_prompt,
+        AI_MODEL_KEY: existing_root.get(AI_MODEL_KEY, model_name),
+        SYSTEM_PROMPT_KEY: existing_root.get(SYSTEM_PROMPT_KEY, system_prompt),
     }
     for key, value in existing_root.items():
         if key in {AI_MODEL_KEY, SYSTEM_PROMPT_KEY}:
@@ -119,27 +119,30 @@ def _update_yaml_log(
 ) -> None:
     log_path = Path(log_file)
     log_path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = log_path.with_name(f"{log_path.name}.lock")
     log_path.touch(exist_ok=True)
+    lock_path.touch(exist_ok=True)
 
-    with log_path.open("r+", encoding="utf-8") as handle:
-        _lock_file(handle)
+    with lock_path.open("r+", encoding="utf-8") as lock_handle:
+        _lock_file(lock_handle)
         try:
-            handle.seek(0)
-            try:
-                existing_data = yaml.safe_load(handle.read()) or {}
-            except yaml.YAMLError:
-                existing_data = {}
-            log_root = _prune_expired_entries(_load_log_root(existing_data, model_name, system_prompt), now)
-            if interaction is not None:
-                log_root[now.isoformat()] = interaction
+            with log_path.open("r+", encoding="utf-8") as handle:
+                handle.seek(0)
+                try:
+                    existing_data = yaml.safe_load(handle.read()) or {}
+                except yaml.YAMLError:
+                    existing_data = {}
+                log_root = _prune_expired_entries(_load_log_root(existing_data, model_name, system_prompt), now)
+                if interaction is not None:
+                    log_root[now.isoformat()] = interaction
 
-            handle.seek(0)
-            handle.truncate()
-            yaml.safe_dump({LOG_ROOT_TITLE: log_root}, handle, sort_keys=False, allow_unicode=True)
-            handle.flush()
-            os.fsync(handle.fileno())
+                handle.seek(0)
+                handle.truncate()
+                yaml.safe_dump({LOG_ROOT_TITLE: log_root}, handle, sort_keys=False, allow_unicode=True)
+                handle.flush()
+                os.fsync(handle.fileno())
         finally:
-            _unlock_file(handle)
+            _unlock_file(lock_handle)
 
 
 def initialize_yaml_log(
