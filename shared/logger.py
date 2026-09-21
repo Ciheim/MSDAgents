@@ -145,7 +145,10 @@ def _update_yaml_log(
                     existing_data = {}
                 log_root = _prune_expired_entries(_load_log_root(existing_data, model_name, system_prompt), now)
                 if interaction is not None:
-                    log_root[now.isoformat()] = interaction
+                    entry_time = now
+                    while entry_time.isoformat() in log_root:
+                        entry_time += timedelta(microseconds=1)
+                    log_root[entry_time.isoformat()] = interaction
 
                 handle.seek(0)
                 handle.truncate()
