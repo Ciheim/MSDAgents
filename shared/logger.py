@@ -21,6 +21,7 @@ AI_MODEL_KEY = "AI model"
 SYSTEM_PROMPT_KEY = "System prompt"
 RETRIEVED_FILES_KEY = "retrieved files"
 RETENTION_DAYS = 30
+WINDOWS_LOCK_SIZE = 2**31 - 1
 
 def configure_yaml_logging(log_file: str | Path = OUTPUT_LOG_FILE) -> Path:
     return Path(log_file)
@@ -89,7 +90,7 @@ def _lock_file(handle: Any) -> None:
 
     if msvcrt is not None:
         handle.seek(0)
-        msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, WINDOWS_LOCK_SIZE)
 
 
 def _unlock_file(handle: Any) -> None:
@@ -99,7 +100,7 @@ def _unlock_file(handle: Any) -> None:
 
     if msvcrt is not None:
         handle.seek(0)
-        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, WINDOWS_LOCK_SIZE)
 
 
 def _update_yaml_log(
@@ -115,18 +116,20 @@ def _update_yaml_log(
 
     with log_path.open("a+", encoding="utf-8") as handle:
         _lock_file(handle)
-        handle.seek(0)
-        existing_data = yaml.safe_load(handle.read()) or {}
-        log_root = _prune_expired_entries(_load_log_root(existing_data, model_name, system_prompt), now)
-        if interaction is not None:
-            log_root[now.isoformat()] = interaction
+        try:
+            handle.seek(0)
+            existing_data = yaml.safe_load(handle.read()) or {}
+            log_root = _prune_expired_entries(_load_log_root(existing_data, model_name, system_prompt), now)
+            if interaction is not None:
+                log_root[now.isoformat()] = interaction
 
-        handle.seek(0)
-        handle.truncate()
-        yaml.safe_dump({LOG_ROOT_TITLE: log_root}, handle, sort_keys=False, allow_unicode=True)
-        handle.flush()
-        os.fsync(handle.fileno())
-        _unlock_file(handle)
+            handle.seek(0)
+            handle.truncate()
+            yaml.safe_dump({LOG_ROOT_TITLE: log_root}, handle, sort_keys=False, allow_unicode=True)
+            handle.flush()
+            os.fsync(handle.fileno())
+        finally:
+            _unlock_file(handle)
 
 
 def initialize_yaml_log(
