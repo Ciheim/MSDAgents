@@ -38,7 +38,7 @@ class SharedLoggerTests(unittest.TestCase):
             return yaml.safe_load(log_file)
 
     def test_default_log_path_uses_home_directory(self) -> None:
-        self.assertEqual(configure_yaml_logging(), OUTPUT_LOG_FILE)
+        self.assertEqual(configure_yaml_logging(), Path.home() / OUTPUT_LOG_FILE)
 
     def test_log_structure_persists_across_reinitialization(self) -> None:
         first_time = datetime(2026, 9, 1, 12, 0, tzinfo=timezone.utc)

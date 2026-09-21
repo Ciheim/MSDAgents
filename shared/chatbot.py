@@ -6,7 +6,7 @@ from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
-from shared.logger import OUTPUT_LOG_FILE, configure_yaml_logging, initialize_yaml_log, log_interaction
+from shared.logger import configure_yaml_logging, initialize_yaml_log, log_interaction
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class RAGChatbot:
                  model_name: str = OLLAMA_CHAT_MODEL,
                  search_hybrid = False,
                  retrieve_function: Any = None,
-                 log_file: str | Path = OUTPUT_LOG_FILE,
+                 log_file: str | Path | None = None,
     ):
         
         self.chatbot = ChatOllama(model=model_name, temperature=temperature)

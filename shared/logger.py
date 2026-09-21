@@ -19,14 +19,17 @@ except ImportError:
 else:
     msvcrt = None
 
-OUTPUT_LOG_FILE = Path.home() / "MSD_Chatbot_Log.yaml"
+OUTPUT_LOG_FILE = "MSD_Chatbot_Log.yaml"
 LOG_ROOT_TITLE = "MSD Chabot Log"
 AI_MODEL_KEY = "AI model"
 SYSTEM_PROMPT_KEY = "System prompt"
 RETRIEVED_FILES_KEY = "retrieved files"
 RETENTION_DAYS = 30
 
-def configure_yaml_logging(log_file: str | Path = OUTPUT_LOG_FILE) -> Path:
+def configure_yaml_logging(log_file: str | Path | None = None) -> Path:
+    if log_file is None:
+        return Path.home() / OUTPUT_LOG_FILE
+
     return Path(log_file).expanduser()
 
 
@@ -156,7 +159,7 @@ def _update_yaml_log(
 def initialize_yaml_log(
     model_name: str,
     system_prompt: str,
-    log_file: str | Path = OUTPUT_LOG_FILE,
+    log_file: str | Path | None = None,
     *,
     now: datetime | None = None,
 ) -> None:
@@ -170,7 +173,7 @@ def log_interaction(
     question: str,
     response: str,
     docs_and_scores: list[tuple[Any, float]],
-    log_file: str | Path = OUTPUT_LOG_FILE,
+    log_file: str | Path | None = None,
     *,
     now: datetime | None = None,
 ) -> None:
