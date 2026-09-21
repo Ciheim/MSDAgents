@@ -10,6 +10,7 @@ import yaml
 from shared.logger import (
     AI_MODEL_KEY,
     LOG_ROOT_TITLE,
+    OUTPUT_LOG_FILE,
     RETRIEVED_FILES_KEY,
     SYSTEM_PROMPT_KEY,
     configure_yaml_logging,
@@ -35,6 +36,9 @@ class SharedLoggerTests(unittest.TestCase):
     def _read_log(self) -> dict:
         with self.log_path.open("r", encoding="utf-8") as log_file:
             return yaml.safe_load(log_file)
+
+    def test_default_log_path_uses_home_directory(self) -> None:
+        self.assertEqual(configure_yaml_logging(), OUTPUT_LOG_FILE)
 
     def test_log_structure_persists_across_reinitialization(self) -> None:
         first_time = datetime(2026, 9, 1, 12, 0, tzinfo=timezone.utc)

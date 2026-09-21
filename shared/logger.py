@@ -19,7 +19,7 @@ except ImportError:
 else:
     msvcrt = None
 
-OUTPUT_LOG_FILE = "MSD_Chatbot_Log.yaml"
+OUTPUT_LOG_FILE = Path.home() / "MSD_Chatbot_Log.yaml"
 LOG_ROOT_TITLE = "MSD Chabot Log"
 AI_MODEL_KEY = "AI model"
 SYSTEM_PROMPT_KEY = "System prompt"
@@ -27,7 +27,7 @@ RETRIEVED_FILES_KEY = "retrieved files"
 RETENTION_DAYS = 30
 
 def configure_yaml_logging(log_file: str | Path = OUTPUT_LOG_FILE) -> Path:
-    return Path(log_file)
+    return Path(log_file).expanduser()
 
 
 def _normalize_timestamp(value: str) -> datetime | None:
