@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 import yaml
 
@@ -39,6 +40,26 @@ class SharedLoggerTests(unittest.TestCase):
 
     def test_default_log_path_uses_home_directory(self) -> None:
         self.assertEqual(configure_yaml_logging(), Path.home() / OUTPUT_LOG_FILE)
+
+    def test_default_log_apis_use_home_directory(self) -> None:
+        current_time = datetime(2026, 9, 21, 18, 14, tzinfo=timezone.utc)
+        expected_log_path = Path(self.temp_dir.name) / OUTPUT_LOG_FILE
+
+        with patch("shared.logger.Path.home", return_value=Path(self.temp_dir.name)):
+            initialize_yaml_log("model-a", "system-a", now=current_time)
+            log_interaction(
+                "model-a",
+                "system-a",
+                "question",
+                "answer",
+                [(_FakeDocument("file-a.md", "chunk"), 0.4)],
+                now=current_time,
+            )
+
+        with expected_log_path.open("r", encoding="utf-8") as log_file:
+            data = yaml.safe_load(log_file)
+
+        self.assertEqual(data[LOG_ROOT_TITLE][current_time.isoformat()]["response"], "answer")
 
     def test_log_structure_persists_across_reinitialization(self) -> None:
         first_time = datetime(2026, 9, 1, 12, 0, tzinfo=timezone.utc)

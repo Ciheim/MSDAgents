@@ -164,7 +164,7 @@ def initialize_yaml_log(
     now: datetime | None = None,
 ) -> None:
     current_time = now or _utc_now()
-    _update_yaml_log(log_file, model_name, system_prompt, now=current_time)
+    _update_yaml_log(configure_yaml_logging(log_file), model_name, system_prompt, now=current_time)
 
 
 def log_interaction(
@@ -190,4 +190,10 @@ def log_interaction(
             for doc, score in docs_and_scores
         ],
     }
-    _update_yaml_log(log_file, model_name, system_prompt, now=current_time, interaction=interaction)
+    _update_yaml_log(
+        configure_yaml_logging(log_file),
+        model_name,
+        system_prompt,
+        now=current_time,
+        interaction=interaction,
+    )
